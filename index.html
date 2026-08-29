@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ASCII City</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div class="title">ASCII CITY</div>
+        <div id="status">Initializing...</div>
+        <div class="controls">
+            WASD — Move<br>
+            ← → — Turn<br>
+            Mouse — Look
+        </div>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <div id="minimap">
+        <canvas id="minimapCanvas"></canvas>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
