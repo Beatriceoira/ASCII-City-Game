@@ -1,5 +1,5 @@
 // ============================================
-// LIGHTING.JS
+// LIGHTING.JS — VERSION 4
 // ============================================
 
 
@@ -23,10 +23,6 @@ export function clamp(
 }
 
 
-// ============================================
-// DISTANCE
-// ============================================
-
 export function distanceBrightness(
     distance,
     maxDistance
@@ -42,15 +38,12 @@ export function distanceBrightness(
 
 
     return Math.pow(
-        1 - normalized,
-        1.35
+        1 -
+        normalized,
+        1.25
     );
 }
 
-
-// ============================================
-// LIGHT SOURCE
-// ============================================
 
 export function pointLight(
     distance,
@@ -73,24 +66,6 @@ export function pointLight(
 }
 
 
-// ============================================
-// DAY/NIGHT
-// ============================================
-
-export function getWorldLight(
-    night
-) {
-
-    return night
-        ? 0.32
-        : 1.0;
-}
-
-
-// ============================================
-// FINAL LIGHT
-// ============================================
-
 export function calculateBrightness(
     distance,
     maxDistance,
@@ -106,17 +81,25 @@ export function calculateBrightness(
         );
 
 
-    const worldLight =
-        getWorldLight(
-            night
-        );
-
-
     brightness *=
-        worldLight;
+        night
+            ? 0.34
+            : 1;
 
 
-    // Fog.
+    if (
+        side === 1
+    ) {
+
+        brightness *=
+            0.76;
+    }
+
+
+    brightness +=
+        localLight *
+        0.8;
+
 
     const fog =
         clamp(
@@ -129,38 +112,16 @@ export function calculateBrightness(
 
     brightness *=
         1 -
-        fog * 0.5;
-
-
-    // Wall orientation.
-
-    if (
-        side === 1
-    ) {
-
-        brightness *=
-            0.78;
-    }
-
-
-    // Local lights.
-
-    brightness +=
-        localLight *
-        0.7;
+        fog * 0.42;
 
 
     return clamp(
         brightness,
-        0.025,
+        0.02,
         1
     );
 }
 
-
-// ============================================
-// ASCII
-// ============================================
 
 export function brightnessToASCII(
     brightness
@@ -186,13 +147,9 @@ export function brightnessToASCII(
 }
 
 
-// ============================================
-// COLOR
-// ============================================
-
 export function brightnessToColor(
     brightness,
-    night = false
+    night
 ) {
 
     if (
@@ -201,23 +158,35 @@ export function brightnessToColor(
 
         const r =
             Math.floor(
-                brightness * 100
+                brightness *
+                90
             );
 
 
         const g =
             Math.floor(
-                brightness * 150
+                brightness *
+                145
             );
 
 
         const b =
             Math.floor(
-                brightness * 220
+                brightness *
+                220
             );
 
 
-        return `rgb(${r},${g},${b})`;
+        return `
+            rgb(
+                ${r},
+                ${g},
+                ${b}
+            )
+        `.replace(
+            /\s/g,
+            ""
+        );
     }
 
 
@@ -229,13 +198,18 @@ export function brightnessToColor(
         );
 
 
-    return `rgb(${value},${value},${value})`;
+    return `
+        rgb(
+            ${value},
+            ${value},
+            ${value}
+        )
+    `.replace(
+        /\s/g,
+        ""
+    );
 }
 
-
-// ============================================
-// LIGHT COLOR
-// ============================================
 
 export function lightColor(
     brightness
@@ -244,23 +218,35 @@ export function lightColor(
     const r =
         Math.floor(
             150 +
-            brightness * 105
+            brightness *
+            105
         );
 
 
     const g =
         Math.floor(
             100 +
-            brightness * 120
+            brightness *
+            120
         );
 
 
     const b =
         Math.floor(
-            25 +
-            brightness * 70
+            20 +
+            brightness *
+            80
         );
 
 
-    return `rgb(${r},${g},${b})`;
+    return `
+        rgb(
+            ${r},
+            ${g},
+            ${b}
+        )
+    `.replace(
+        /\s/g,
+        ""
+    );
 }

@@ -1,66 +1,886 @@
 // ============================================
-// WORLD.JS
+// WORLD.JS — VERSION 4
+// PROCEDURAL CITY GENERATOR
 // ============================================
 
 
-export const WORLD_MAP = [
+export const TILE_SIZE = 1;
 
-    "################################",
-    "#..............#...............#",
-    "#..............#...............#",
-    "#..............#...............#",
-    "#..............................#",
-    "#..............#...............#",
-    "#..............#...............#",
-    "#..............#...............#",
-    "#..............................#",
-    "######.################.#######",
-    "#..............................#",
-    "#..............................#",
-    "#....####......................#",
-    "#....####......................#",
-    "#..............................#",
-    "#..............................#",
-    "#.....................####.....#",
-    "#.....................####.....#",
-    "#..............................#",
-    "#..............................#",
-    "#...........#..................#",
-    "#...........#..................#",
-    "#..............................#",
-    "#...........#..................#",
-    "#...........#..................#",
-    "#..............................#",
-    "#..............................#",
-    "################################"
-];
+export const WORLD_WIDTH = 80;
+
+export const WORLD_HEIGHT = 80;
 
 
-export const WORLD_WIDTH =
-    WORLD_MAP[0].length;
-
-
-export const WORLD_HEIGHT =
-    WORLD_MAP.length;
-
+// ============================================
+// TILE TYPES
+// ============================================
 
 export const TILE = {
 
-    EMPTY: ".",
+    ROAD: ".",
 
-    WALL: "#"
+    SIDEWALK: "s",
+
+    BUILDING: "#",
+
+    PARK: "p"
 
 };
 
 
 // ============================================
-// TILE ACCESS
+// SEEDED RANDOM
 // ============================================
 
-export function getTile(x, y) {
+export class Random {
+
+    constructor(seed = 12345) {
+
+        this.seed =
+            seed >>> 0;
+    }
+
+
+    next() {
+
+        this.seed =
+            (
+                this.seed *
+                1664525 +
+                1013904223
+            ) >>> 0;
+
+
+        return (
+            this.seed /
+            4294967296
+        );
+    }
+
+
+    range(
+        min,
+        max
+    ) {
+
+        return (
+            min +
+            this.next() *
+            (
+                max - min
+            )
+        );
+    }
+
+
+    int(
+        min,
+        max
+    ) {
+
+        return Math.floor(
+            this.range(
+                min,
+                max + 1
+            )
+        );
+    }
+
+
+    chance(
+        probability
+    ) {
+
+        return (
+            this.next() <
+            probability
+        );
+    }
+
+
+    pick(
+        array
+    ) {
+
+        return array[
+            this.int(
+                0,
+                array.length - 1
+            )
+        ];
+    }
+}
+
+
+// ============================================
+// CITY DATA
+// ============================================
+
+export let WORLD_MAP = [];
+
+export let buildings = [];
+
+export let treeSpawns = [];
+
+export let carSpawns = [];
+
+export let pedestrianSpawns = [];
+
+export let streetLights = [];
+
+export let trafficLights = [];
+
+export let parks = [];
+
+
+// ============================================
+// CITY SEED
+// ============================================
+
+export let currentSeed =
+    20260324;
+
+
+// ============================================
+// EMPTY MAP
+// ============================================
+
+function createEmptyMap() {
+
+    WORLD_MAP = [];
+
+
+    for (
+        let y = 0;
+        y < WORLD_HEIGHT;
+        y++
+    ) {
+
+        WORLD_MAP[y] =
+            new Array(
+                WORLD_WIDTH
+            ).fill(
+                TILE.BUILDING
+            );
+    }
+}
+
+
+// ============================================
+// SET TILE
+// ============================================
+
+function setTile(
+    x,
+    y,
+    tile
+) {
+
+    if (
+        x < 0 ||
+        x >= WORLD_WIDTH ||
+        y < 0 ||
+        y >= WORLD_HEIGHT
+    ) {
+
+        return;
+    }
+
+
+    WORLD_MAP[y][x] =
+        tile;
+}
+
+
+// ============================================
+// GENERATE ROADS
+// ============================================
+
+function generateRoads(
+    random
+) {
+
+    const verticalRoads = [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70
+    ];
+
+
+    const horizontalRoads = [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70
+    ];
+
+
+    for (
+        const x
+        of verticalRoads
+    ) {
+
+        for (
+            let y = 0;
+            y < WORLD_HEIGHT;
+            y++
+        ) {
+
+            setTile(
+                x,
+                y,
+                TILE.ROAD
+            );
+
+
+            if (
+                x > 0
+            ) {
+
+                setTile(
+                    x - 1,
+                    y,
+                    TILE.SIDEWALK
+                );
+            }
+
+
+            if (
+                x <
+                WORLD_WIDTH - 1
+            ) {
+
+                setTile(
+                    x + 1,
+                    y,
+                    TILE.SIDEWALK
+                );
+            }
+        }
+    }
+
+
+    for (
+        const y
+        of horizontalRoads
+    ) {
+
+        for (
+            let x = 0;
+            x < WORLD_WIDTH;
+            x++
+        ) {
+
+            setTile(
+                x,
+                y,
+                TILE.ROAD
+            );
+
+
+            if (
+                y > 0
+            ) {
+
+                setTile(
+                    x,
+                    y - 1,
+                    TILE.SIDEWALK
+                );
+            }
+
+
+            if (
+                y <
+                WORLD_HEIGHT - 1
+            ) {
+
+                setTile(
+                    x,
+                    y + 1,
+                    TILE.SIDEWALK
+                );
+            }
+        }
+    }
+}
+
+
+// ============================================
+// GENERATE BLOCKS
+// ============================================
+
+function generateBlocks(
+    random
+) {
+
+    buildings = [];
+
+
+    const blockSize = 10;
+
+    const roadWidth = 3;
+
+
+    for (
+        let blockY = 0;
+        blockY < 7;
+        blockY++
+    ) {
+
+        for (
+            let blockX = 0;
+            blockX < 7;
+            blockX++
+        ) {
+
+            const originX =
+                blockX *
+                blockSize;
+
+
+            const originY =
+                blockY *
+                blockSize;
+
+
+            if (
+                random.chance(
+                    0.12
+                )
+            ) {
+
+                generatePark(
+                    originX,
+                    originY,
+                    random
+                );
+
+                continue;
+            }
+
+
+            const margin = 2;
+
+
+            const width =
+                random.int(
+                    4,
+                    7
+                );
+
+
+            const depth =
+                random.int(
+                    4,
+                    7
+                );
+
+
+            const x =
+                originX +
+                margin;
+
+
+            const y =
+                originY +
+                margin;
+
+
+            const height =
+                random.int(
+                    4,
+                    18
+                );
+
+
+            const type =
+                random.pick([
+                    "residential",
+                    "office",
+                    "commercial",
+                    "tower"
+                ]);
+
+
+            const building = {
+
+                id:
+                    `B${buildings.length
+                        .toString()
+                        .padStart(
+                            3,
+                            "0"
+                        )}`,
+
+                x,
+
+                y,
+
+                width,
+
+                depth,
+
+                height,
+
+                type,
+
+                windows:
+                    true,
+
+                windowRows:
+                    Math.max(
+                        2,
+                        Math.floor(
+                            height *
+                            0.65
+                        )
+                    ),
+
+                windowColumns:
+                    Math.max(
+                        2,
+                        width - 1
+                    )
+            };
+
+
+            buildings.push(
+                building
+            );
+
+
+            // Building footprint.
+
+            for (
+                let yy = y;
+                yy <
+                y + depth;
+                yy++
+            ) {
+
+                for (
+                    let xx = x;
+                    xx <
+                    x + width;
+                    xx++
+                ) {
+
+                    setTile(
+                        xx,
+                        yy,
+                        TILE.BUILDING
+                    );
+                }
+            }
+        }
+    }
+}
+
+
+// ============================================
+// PARK
+// ============================================
+
+function generatePark(
+    originX,
+    originY,
+    random
+) {
+
+    const park = {
+
+        x:
+            originX + 2,
+
+        y:
+            originY + 2,
+
+        width: 6,
+
+        depth: 6
+
+    };
+
+
+    parks.push(
+        park
+    );
+
+
+    for (
+        let y = park.y;
+        y <
+        park.y +
+        park.depth;
+        y++
+    ) {
+
+        for (
+            let x = park.x;
+            x <
+            park.x +
+            park.width;
+            x++
+        ) {
+
+            setTile(
+                x,
+                y,
+                TILE.PARK
+            );
+
+
+            if (
+                random.chance(
+                    0.2
+                )
+            ) {
+
+                treeSpawns.push({
+
+                    x:
+                        x + 0.5,
+
+                    y:
+                        y + 0.5
+
+                });
+            }
+        }
+    }
+}
+
+
+// ============================================
+// STREET LIGHTS
+// ============================================
+
+function generateStreetLights() {
+
+    streetLights = [];
+
+
+    for (
+        let x = 5;
+        x < WORLD_WIDTH;
+        x += 10
+    ) {
+
+        for (
+            let y = 5;
+            y < WORLD_HEIGHT;
+            y += 10
+        ) {
+
+            streetLights.push({
+
+                x:
+                    x + 0.5,
+
+                y:
+                    y + 0.5
+
+            });
+        }
+    }
+}
+
+
+// ============================================
+// TRAFFIC LIGHTS
+// ============================================
+
+function generateTrafficLights(
+    random
+) {
+
+    trafficLights = [];
+
+
+    const intersections = [
+
+        [10, 10],
+        [20, 20],
+        [30, 30],
+        [40, 40],
+        [50, 50],
+        [60, 60],
+        [70, 70],
+
+        [20, 40],
+        [40, 20],
+        [60, 30]
+
+    ];
+
+
+    for (
+        const [
+            x,
+            y
+        ]
+        of intersections
+    ) {
+
+        trafficLights.push({
+
+            x:
+                x + 1.5,
+
+            y:
+                y + 1.5,
+
+            state:
+                random.pick([
+                    "red",
+                    "yellow",
+                    "green"
+                ])
+
+        });
+    }
+}
+
+
+// ============================================
+// CARS
+// ============================================
+
+function generateCars(
+    random
+) {
+
+    carSpawns = [];
+
+
+    const roads = [
+
+        ...[10,20,30,40,50,60,70]
+            .map(y => ({
+                axis: "horizontal",
+                value: y
+            })),
+
+        ...[10,20,30,40,50,60,70]
+            .map(x => ({
+                axis: "vertical",
+                value: x
+            }))
+
+    ];
+
+
+    for (
+        let i = 0;
+        i < 24;
+        i++
+    ) {
+
+        const road =
+            random.pick(
+                roads
+            );
+
+
+        if (
+            road.axis ===
+            "horizontal"
+        ) {
+
+            carSpawns.push({
+
+                x:
+                    random.range(
+                        2,
+                        WORLD_WIDTH - 2
+                    ),
+
+                y:
+                    road.value +
+                    0.5,
+
+                angle:
+                    random.chance(0.5)
+                        ? 0
+                        : Math.PI,
+
+                speed:
+                    random.range(
+                        0.4,
+                        1.2
+                    )
+
+            });
+
+        } else {
+
+            carSpawns.push({
+
+                x:
+                    road.value +
+                    0.5,
+
+                y:
+                    random.range(
+                        2,
+                        WORLD_HEIGHT - 2
+                    ),
+
+                angle:
+                    random.chance(0.5)
+                        ? Math.PI / 2
+                        : -Math.PI / 2,
+
+                speed:
+                    random.range(
+                        0.4,
+                        1.2
+                    )
+
+            });
+        }
+    }
+}
+
+
+// ============================================
+// PEDESTRIANS
+// ============================================
+
+function generatePedestrians(
+    random
+) {
+
+    pedestrianSpawns = [];
+
+
+    for (
+        let i = 0;
+        i < 30;
+        i++
+    ) {
+
+        const x =
+            random.int(
+                2,
+                WORLD_WIDTH - 2
+            );
+
+
+        const y =
+            random.int(
+                2,
+                WORLD_HEIGHT - 2
+            );
+
+
+        if (
+            getTile(
+                x,
+                y
+            ) !== TILE.BUILDING
+        ) {
+
+            pedestrianSpawns.push({
+
+                x:
+                    x + 0.5,
+
+                y:
+                    y + 0.5,
+
+                angle:
+                    random.range(
+                        0,
+                        Math.PI * 2
+                    ),
+
+                speed:
+                    random.range(
+                        0.15,
+                        0.4
+                    )
+
+            });
+        }
+    }
+}
+
+
+// ============================================
+// TREES
+// ============================================
+
+function generateTrees(
+    random
+) {
+
+    for (
+        let i = 0;
+        i < 35;
+        i++
+    ) {
+
+        const x =
+            random.int(
+                1,
+                WORLD_WIDTH - 2
+            );
+
+
+        const y =
+            random.int(
+                1,
+                WORLD_HEIGHT - 2
+            );
+
+
+        const tile =
+            getTile(
+                x,
+                y
+            );
+
+
+        if (
+            tile === TILE.SIDEWALK ||
+            tile === TILE.PARK
+        ) {
+
+            treeSpawns.push({
+
+                x:
+                    x + 0.5,
+
+                y:
+                    y + 0.5
+
+            });
+        }
+    }
+}
+
+
+// ============================================
+// TILE
+// ============================================
+
+export function getTile(
+    x,
+    y
+) {
 
     const mapX =
         Math.floor(x);
+
 
     const mapY =
         Math.floor(y);
@@ -73,7 +893,7 @@ export function getTile(x, y) {
         mapY >= WORLD_HEIGHT
     ) {
 
-        return TILE.WALL;
+        return TILE.BUILDING;
     }
 
 
@@ -81,353 +901,22 @@ export function getTile(x, y) {
 }
 
 
-export function isWall(x, y) {
+// ============================================
+// COLLISION
+// ============================================
+
+export function isWall(
+    x,
+    y
+) {
 
     return (
-        getTile(x, y) === TILE.WALL
+        getTile(
+            x,
+            y
+        ) === TILE.BUILDING
     );
 }
-
-
-// ============================================
-// BUILDINGS
-// ============================================
-
-export const buildings = [
-
-    {
-        id: "A01",
-
-        x: 2,
-        y: 2,
-
-        width: 4,
-        depth: 3,
-
-        height: 8,
-
-        windows: true,
-
-        windowRows: 5,
-
-        windowColumns: 3
-    },
-
-
-    {
-        id: "A02",
-
-        x: 9,
-        y: 2,
-
-        width: 4,
-        depth: 3,
-
-        height: 12,
-
-        windows: true,
-
-        windowRows: 8,
-
-        windowColumns: 3
-    },
-
-
-    {
-        id: "A03",
-
-        x: 18,
-        y: 2,
-
-        width: 5,
-        depth: 4,
-
-        height: 16,
-
-        windows: true,
-
-        windowRows: 10,
-
-        windowColumns: 4
-    },
-
-
-    {
-        id: "A04",
-
-        x: 25,
-        y: 5,
-
-        width: 4,
-        depth: 4,
-
-        height: 10,
-
-        windows: true,
-
-        windowRows: 6,
-
-        windowColumns: 3
-    },
-
-
-    {
-        id: "A05",
-
-        x: 5,
-        y: 12,
-
-        width: 4,
-        depth: 3,
-
-        height: 7,
-
-        windows: true,
-
-        windowRows: 4,
-
-        windowColumns: 3
-    },
-
-
-    {
-        id: "A06",
-
-        x: 19,
-        y: 16,
-
-        width: 4,
-        depth: 4,
-
-        height: 11,
-
-        windows: true,
-
-        windowRows: 7,
-
-        windowColumns: 3
-    },
-
-
-    {
-        id: "A07",
-
-        x: 25,
-        y: 20,
-
-        width: 4,
-        depth: 3,
-
-        height: 8,
-
-        windows: true,
-
-        windowRows: 5,
-
-        windowColumns: 3
-    }
-
-];
-
-
-// ============================================
-// STREET LIGHTS
-// ============================================
-
-export const streetLights = [
-
-    { x: 7.5, y: 9.5 },
-    { x: 14.5, y: 9.5 },
-    { x: 21.5, y: 9.5 },
-    { x: 28.5, y: 9.5 },
-
-    { x: 10.5, y: 15.5 },
-    { x: 15.5, y: 15.5 },
-    { x: 24.5, y: 15.5 },
-
-    { x: 4.5, y: 20.5 },
-    { x: 14.5, y: 23.5 },
-    { x: 23.5, y: 25.5 }
-
-];
-
-
-// ============================================
-// TRAFFIC LIGHTS
-// ============================================
-
-export const trafficLights = [
-
-    {
-        x: 7.8,
-        y: 9.8,
-        state: "green"
-    },
-
-    {
-        x: 21.8,
-        y: 9.8,
-        state: "red"
-    },
-
-    {
-        x: 14.8,
-        y: 15.8,
-        state: "yellow"
-    }
-
-];
-
-
-// ============================================
-// ROAD MARKINGS
-// ============================================
-
-export const roadMarkings = [
-
-    {
-        x1: 1,
-        y1: 9.5,
-
-        x2: 30,
-        y2: 9.5
-    },
-
-    {
-        x1: 10,
-        y1: 1,
-
-        x2: 10,
-        y2: 27
-    },
-
-    {
-        x1: 21,
-        y1: 1,
-
-        x2: 21,
-        y2: 27
-    }
-
-];
-
-
-// ============================================
-// PLAYER
-// ============================================
-
-export const playerSpawn = {
-
-    x: 15.5,
-
-    y: 8.5,
-
-    angle: Math.PI / 2
-
-};
-
-
-// ============================================
-// TREES
-// ============================================
-
-export const treeSpawns = [
-
-    { x: 3.5, y: 7.5 },
-    { x: 7.5, y: 7.5 },
-    { x: 15.5, y: 4.5 },
-    { x: 24.5, y: 4.5 },
-
-    { x: 2.5, y: 18.5 },
-    { x: 11.5, y: 18.5 },
-    { x: 15.5, y: 15.5 },
-    { x: 24.5, y: 14.5 },
-
-    { x: 29.5, y: 12.5 },
-    { x: 12.5, y: 23.5 }
-
-];
-
-
-// ============================================
-// CARS
-// ============================================
-
-export const carSpawns = [
-
-    {
-        x: 10.5,
-        y: 9.5,
-
-        angle: 0,
-
-        speed: 1.0
-    },
-
-    {
-        x: 21.5,
-        y: 9.5,
-
-        angle: Math.PI,
-
-        speed: 0.7
-    },
-
-    {
-        x: 15.5,
-        y: 15.5,
-
-        angle: 0,
-
-        speed: 0.8
-    }
-
-];
-
-
-// ============================================
-// PEDESTRIANS
-// ============================================
-
-export const pedestrianSpawns = [
-
-    {
-        x: 7.5,
-        y: 9.5,
-
-        angle: 0,
-
-        speed: 0.35
-    },
-
-    {
-        x: 18.5,
-        y: 9.5,
-
-        angle: Math.PI,
-
-        speed: 0.3
-    },
-
-    {
-        x: 13.5,
-        y: 15.5,
-
-        angle: 0,
-
-        speed: 0.25
-    },
-
-    {
-        x: 26.5,
-        y: 14.5,
-
-        angle: Math.PI,
-
-        speed: 0.25
-    }
-
-];
 
 
 // ============================================
@@ -445,20 +934,151 @@ export function getBuildingAt(
     ) {
 
         if (
+
             mapX >= building.x &&
+
             mapX <
                 building.x +
                 building.width &&
 
             mapY >= building.y &&
+
             mapY <
                 building.y +
                 building.depth
+
         ) {
 
             return building;
         }
     }
 
+
     return null;
 }
+
+
+// ============================================
+// GENERATE CITY
+// ============================================
+
+export function generateCity(
+    seed = currentSeed
+) {
+
+    currentSeed =
+        Number(seed) || 1;
+
+
+    const random =
+        new Random(
+            currentSeed
+        );
+
+
+    buildings = [];
+
+    treeSpawns = [];
+
+    carSpawns = [];
+
+    pedestrianSpawns = [];
+
+    streetLights = [];
+
+    trafficLights = [];
+
+    parks = [];
+
+
+    createEmptyMap();
+
+    generateRoads(
+        random
+    );
+
+    generateBlocks(
+        random
+    );
+
+    generateStreetLights();
+
+    generateTrafficLights(
+        random
+    );
+
+    generateTrees(
+        random
+    );
+
+    generateCars(
+        random
+    );
+
+    generatePedestrians(
+        random
+    );
+
+
+    return {
+
+        seed:
+            currentSeed,
+
+        buildings,
+
+        treeSpawns,
+
+        carSpawns,
+
+        pedestrianSpawns,
+
+        streetLights,
+
+        trafficLights,
+
+        parks
+
+    };
+}
+
+
+// ============================================
+// RANDOM SEED
+// ============================================
+
+export function randomSeed() {
+
+    return Math.floor(
+        Math.random() *
+        999999999
+    );
+}
+
+
+// ============================================
+// PLAYER SPAWN
+// ============================================
+
+export function getPlayerSpawn() {
+
+    return {
+
+        x: 5.5,
+
+        y: 5.5,
+
+        angle:
+            Math.PI / 4
+
+    };
+}
+
+
+// ============================================
+// INITIAL CITY
+// ============================================
+
+generateCity(
+    currentSeed
+);

@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -9,17 +10,19 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>ASCII City — Version 2</title>
+    <title>ASCII City — Version 4</title>
 
     <link
         rel="stylesheet"
         href="css/style.css"
     >
+
 </head>
 
 <body>
 
     <canvas id="gameCanvas"></canvas>
+
 
     <div id="hud">
 
@@ -28,32 +31,42 @@
         </div>
 
         <div id="status">
-            Loading...
+            Generating city...
         </div>
 
-         <div id="time">
+        <div id="time">
             DAY
         </div>
 
+        <div id="seed">
+            SEED: ------
+        </div>
+
         <div class="controls">
+
             W A S D — Move<br>
             ← → — Turn<br>
             Mouse — Look<br>
-            N — Toggle Night<br>
+            N — Day/Night<br>
+            R — Generate City<br>
             ESC — Release Mouse
+
         </div>
 
     </div>
+
 
     <div id="crosshair">
         +
     </div>
+
 
     <div id="minimap">
 
         <canvas id="minimapCanvas"></canvas>
 
     </div>
+
 
     <script
         type="module"

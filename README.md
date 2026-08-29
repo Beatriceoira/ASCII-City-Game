@@ -1,61 +1,64 @@
-# ASCII City
+ASCII City
 
-A pseudo-3D city rendered entirely from ASCII characters using JavaScript and HTML Canvas.
+A pseudo-3D procedural city rendered entirely from ASCII characters using JavaScript and HTML Canvas.
 
-The project is built from scratch without Unity, Unreal Engine, Three.js, 3D models, textures, or shaders.
+No Unity.
 
-The renderer uses raycasting, perspective projection, a depth buffer, ASCII sprites, distance-based lighting, and dynamic entities to create the illusion of a 3D city.
+No Unreal Engine.
 
----
+No 3D models.
 
-# Version 3
+No textures.
 
-Version 3 introduces dynamic environmental rendering and a more convincing city atmosphere.
+No Three.js.
 
-## Features
+No shaders.
 
-- DDA raycasting
-- Perspective projection
-- Depth buffer
-- ASCII rendering
+The project uses a custom raycasting renderer to create the illusion of a 3D city using characters.
+
+
+
+Version 4
+
+Version 4 introduces procedural city generation.
+
+Instead of manually designing every building, the engine generates a city from a numerical seed.
+
+The same seed produces the same city.
+
+A different seed produces a different city.
+
+Version 4 Features
+
+- Procedural city generation
+- Seeded random number generator
+- Procedural roads
+- Procedural buildings
+- Variable building heights
+- Multiple building types
+- Procedural parks
+- Procedural trees
+- Procedural cars
+- Procedural pedestrians
+- Procedural street lights
+- Procedural traffic lights
+- Building windows
+- Day/night lighting
+- Local light sources
 - Distance-based brightness
 - Atmospheric fog
-- Buildings with different heights
-- Building windows
-- Street lights
-- Traffic lights
-- Cars
-- Pedestrians
-- Trees
-- Dynamic entities
+- Raycasting
+- DDA ray traversal
+- Depth buffer
+- Perspective projection
 - Collision detection
-- WASD movement
-- Arrow-key rotation
 - Mouse look
+- WASD movement
 - Minimap
-- FPS counter
-- Day/night lighting
-- Local street-light illumination
-- Colored ASCII
-- Road markings
+- Runtime city regeneration
 
----
+Project Structure
 
-# Technologies
-
-- HTML5
-- CSS3
-- JavaScript
-- HTML Canvas
-- ES Modules
-
-No external libraries are required.
-
----
-
-# Project Structure
-
-```text
 ascii-city/
 │
 ├── index.html

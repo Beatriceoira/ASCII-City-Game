@@ -1,26 +1,34 @@
 // ============================================
-// MAIN.JS
+// MAIN.JS — VERSION 4
 // ============================================
 
 import {
-    playerSpawn
+    generateCity,
+    randomSeed,
+    getPlayerSpawn,
+    currentSeed
 } from "./world.js";
+
 
 import {
     Player
 } from "./player.js";
 
+
 import {
     Input
 } from "./input.js";
+
 
 import {
     Raycaster
 } from "./raycaster.js";
 
+
 import {
     Renderer
 } from "./renderer.js";
+
 
 import {
     createEntities,
@@ -56,6 +64,12 @@ const timeDisplay =
     );
 
 
+const seedDisplay =
+    document.getElementById(
+        "seed"
+    );
+
+
 // ============================================
 // ENGINE
 // ============================================
@@ -63,14 +77,6 @@ const timeDisplay =
 const input =
     new Input(
         canvas
-    );
-
-
-const player =
-    new Player(
-        playerSpawn.x,
-        playerSpawn.y,
-        playerSpawn.angle
     );
 
 
@@ -85,8 +91,108 @@ const renderer =
     );
 
 
-const entities =
+const spawn =
+    getPlayerSpawn();
+
+
+const player =
+    new Player(
+        spawn.x,
+        spawn.y,
+        spawn.angle
+    );
+
+
+let entities =
     createEntities();
+
+
+// ============================================
+// REGENERATE
+// ============================================
+
+function regenerateCity() {
+
+    const seed =
+        randomSeed();
+
+
+    generateCity(
+        seed
+    );
+
+
+    const spawn =
+        getPlayerSpawn();
+
+
+    player.reset(
+        spawn.x,
+        spawn.y,
+        spawn.angle
+    );
+
+
+    entities =
+        createEntities();
+
+
+    seedDisplay.textContent =
+        `SEED: ${seed}`;
+
+
+    console.log(
+        `Generated city with seed ${seed}`
+    );
+}
+
+// ========================================
+// KEYBOARD ACTIONS
+// ========================================
+
+window.addEventListener(
+    "keydown",
+    (event) => {
+
+        // ========================================
+        // N — DAY / NIGHT
+        // ========================================
+
+        if (
+            event.code === "KeyN"
+        ) {
+
+            if (
+                typeof renderer.toggleNight ===
+                "function"
+            ) {
+
+                renderer.toggleNight();
+            }
+        }
+
+
+        // ========================================
+        // R — REGENERATE CITY
+        // ========================================
+
+        if (
+            event.code === "KeyR"
+        ) {
+
+            regenerateCity();
+        }
+    }
+);
+
+// ============================================
+// EVENTS
+// ============================================
+
+window.addEventListener(
+    "regenerate-city",
+    regenerateCity
+);
 
 
 // ============================================
@@ -113,10 +219,9 @@ function update(
 ) {
 
     player.update(
-        input,
-        deltaTime
+    deltaTime,
+    input
     );
-
 
     updateEntities(
         entities,
@@ -232,11 +337,19 @@ console.log(
 );
 
 console.log(
-    "ASCII CITY — VERSION 3"
+    "ASCII CITY — VERSION 4"
 );
 
 console.log(
     "================================"
+);
+
+console.log(
+    "Procedural Generation: ONLINE"
+);
+
+console.log(
+    "Seeded World: ONLINE"
 );
 
 console.log(
@@ -255,13 +368,10 @@ console.log(
     "Dynamic Lighting: ONLINE"
 );
 
-console.log(
-    "Day/Night Cycle: ONLINE"
-);
 
-console.log(
-    "ASCII CITY MAIN.JS STARTED"
-);
+seedDisplay.textContent =
+    `SEED: ${currentSeed}`;
+
 
 requestAnimationFrame(
     gameLoop

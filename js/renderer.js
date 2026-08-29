@@ -1,5 +1,5 @@
 // ============================================
-// RENDERER.JS
+// RENDERER.JS — VERSION 4
 // ============================================
 
 import {
@@ -7,9 +7,10 @@ import {
     WORLD_MAP,
     WORLD_WIDTH,
     WORLD_HEIGHT,
-    roadMarkings,
+    TILE,
     getBuildingAt
 } from "./world.js";
+
 
 import {
     calculateBrightness,
@@ -21,6 +22,10 @@ import {
 
 
 export class Renderer {
+
+    // ========================================
+    // CONSTRUCTOR
+    // ========================================
 
     constructor(
         canvas,
@@ -45,16 +50,35 @@ export class Renderer {
             );
 
 
-        this.columns = 110;
+        // ========================================
+        // RENDER RESOLUTION
+        // ========================================
 
-        this.rows = 55;
+        this.columns =
+            120;
+
+        this.rows =
+            60;
 
 
-        this.night = false;
+        // ========================================
+        // DAY / NIGHT
+        // ========================================
 
+        this.night =
+            false;
+
+
+        // ========================================
+        // INITIAL RESIZE
+        // ========================================
 
         this.resize();
 
+
+        // ========================================
+        // WINDOW RESIZE
+        // ========================================
 
         window.addEventListener(
             "resize",
@@ -62,13 +86,33 @@ export class Renderer {
         );
 
 
+        // ========================================
+        // DAY / NIGHT EVENT
+        // ========================================
+
         window.addEventListener(
             "toggle-night",
             () => {
 
-                this.night =
-                    !this.night;
+                this.toggleNight();
             }
+        );
+    }
+
+
+    // ========================================
+    // TOGGLE NIGHT
+    // ========================================
+
+    toggleNight() {
+
+        this.night =
+            !this.night;
+
+        console.log(
+            this.night
+                ? "Night mode: ON"
+                : "Night mode: OFF"
         );
     }
 
@@ -97,8 +141,12 @@ export class Renderer {
 
 
         this.ctx.font =
-            `${Math.floor(
-                this.cellHeight
+            `${Math.max(
+                8,
+                Math.floor(
+                    this.cellHeight *
+                    1.15
+                )
             )}px monospace`;
 
 
@@ -112,7 +160,7 @@ export class Renderer {
 
 
     // ========================================
-    // FRAME
+    // CREATE FRAME
     // ========================================
 
     createFrame() {
@@ -123,44 +171,33 @@ export class Renderer {
 
 
         this.characters =
-            new Array(size);
+            new Array(
+                size
+            ).fill(
+                " "
+            );
 
 
         this.colors =
-            new Array(size);
+            new Array(
+                size
+            ).fill(
+                "rgb(0,0,0)"
+            );
 
 
         this.depthBuffer =
             new Array(
                 this.columns
+            ).fill(
+                Infinity
             );
-
-
-        for (
-            let i = 0;
-            i < size;
-            i++
-        ) {
-
-            this.characters[i] =
-                " ";
-
-            this.colors[i] =
-                "rgb(0,0,0)";
-        }
-
-
-        for (
-            let x = 0;
-            x < this.columns;
-            x++
-        ) {
-
-            this.depthBuffer[x] =
-                Infinity;
-        }
     }
 
+
+    // ========================================
+    // ARRAY INDEX
+    // ========================================
 
     index(
         x,
@@ -174,6 +211,10 @@ export class Renderer {
         );
     }
 
+
+    // ========================================
+    // PUT CHARACTER
+    // ========================================
 
     put(
         x,
@@ -222,14 +263,15 @@ export class Renderer {
 
 
     // ========================================
-    // SKY
+    // DRAW SKY
     // ========================================
 
     drawSky() {
 
         const horizon =
             Math.floor(
-                this.rows / 2
+                this.rows *
+                0.48
             );
 
 
@@ -244,29 +286,13 @@ export class Renderer {
                 horizon;
 
 
-            let brightness;
-
-
-            if (
+            const brightness =
                 this.night
-            ) {
+                    ? 0.015 +
+                      (1 - t) * 0.025
 
-                brightness =
-                    0.025 +
-                    (
-                        1 - t
-                    ) *
-                    0.025;
-
-            } else {
-
-                brightness =
-                    0.04 +
-                    (
-                        1 - t
-                    ) *
-                    0.08;
-            }
+                    : 0.04 +
+                      (1 - t) * 0.1;
 
 
             const value =
@@ -277,7 +303,14 @@ export class Renderer {
 
 
             const color =
-                `rgb(${value},${value},${value})`;
+                `rgb(
+                    ${value},
+                    ${value},
+                    ${value}
+                )`.replace(
+                    /\s/g,
+                    ""
+                );
 
 
             for (
@@ -286,33 +319,30 @@ export class Renderer {
                 x++
             ) {
 
-                this.characters[
+                const index =
                     this.index(
                         x,
                         y
-                    )
-                ] = " ";
+                    );
 
-                this.colors[
-                    this.index(
-                        x,
-                        y
-                    )
-                ] = color;
+
+                this.colors[index] =
+                    color;
             }
         }
     }
 
 
     // ========================================
-    // GROUND
+    // DRAW GROUND
     // ========================================
 
     drawGround() {
 
         const horizon =
             Math.floor(
-                this.rows / 2
+                this.rows *
+                0.48
             );
 
 
@@ -335,8 +365,11 @@ export class Renderer {
 
             const brightness =
                 this.night
-                    ? 0.025 - t * 0.015
-                    : 0.13 - t * 0.08;
+                    ? 0.025 -
+                      t * 0.015
+
+                    : 0.12 -
+                      t * 0.07;
 
 
             const value =
@@ -347,11 +380,18 @@ export class Renderer {
 
 
             const color =
-                `rgb(${value},${value},${value})`;
+                `rgb(
+                    ${value},
+                    ${value},
+                    ${value}
+                )`.replace(
+                    /\s/g,
+                    ""
+                );
 
 
             const character =
-                t > 0.65
+                t > 0.7
                     ? ":"
                     : ".";
 
@@ -386,7 +426,7 @@ export class Renderer {
 
 
     // ========================================
-    // WALLS
+    // RENDER WALLS
     // ========================================
 
     renderWalls(
@@ -415,7 +455,8 @@ export class Renderer {
             const rayAngle =
                 player.angle -
                 FOV / 2 +
-                cameraX * FOV;
+                cameraX *
+                FOV;
 
 
             const ray =
@@ -461,11 +502,12 @@ export class Renderer {
                     correctedDistance
                 ) *
                 this.rows *
-                0.85;
+                0.82;
 
 
             const center =
-                this.rows / 2;
+                this.rows *
+                0.48;
 
 
             const top =
@@ -528,11 +570,8 @@ export class Renderer {
             }
 
 
-            // Building windows.
-
             if (
-                building &&
-                building.windows
+                building
             ) {
 
                 this.renderWindows(
@@ -548,7 +587,7 @@ export class Renderer {
 
 
     // ========================================
-    // WINDOWS
+    // RENDER WINDOWS
     // ========================================
 
     renderWindows(
@@ -560,11 +599,12 @@ export class Renderer {
     ) {
 
         const height =
-            bottom - top;
+            bottom -
+            top;
 
 
         if (
-            height < 8
+            height < 10
         ) {
 
             return;
@@ -575,7 +615,8 @@ export class Renderer {
             Math.min(
                 building.windowRows,
                 Math.floor(
-                    height / 6
+                    height /
+                    5
                 )
             );
 
@@ -605,12 +646,10 @@ export class Renderer {
 
                 const lit =
                     (
-                        (
-                            column * 7 +
-                            i * 13
-                        ) %
-                        5
-                    ) !== 0;
+                        column * 11 +
+                        i * 7 +
+                        building.height
+                    ) % 6 !== 0;
 
 
                 if (
@@ -620,9 +659,10 @@ export class Renderer {
                     this.put(
                         column,
                         y,
-                        "[]",
-                        "rgb(220,180,80)",
-                        depth - 0.001
+                        "□",
+                        "rgb(220,185,90)",
+                        depth -
+                        0.002
                     );
                 }
 
@@ -632,8 +672,9 @@ export class Renderer {
                     column,
                     y,
                     ".",
-                    "rgb(100,100,100)",
-                    depth - 0.001
+                    "rgb(90,90,90)",
+                    depth -
+                    0.002
                 );
             }
         }
@@ -658,7 +699,17 @@ export class Renderer {
         }
 
 
-        let result = 0;
+        let result =
+            0;
+
+
+        if (
+            !entities ||
+            !entities.lights
+        ) {
+
+            return 0;
+        }
 
 
         for (
@@ -667,11 +718,13 @@ export class Renderer {
         ) {
 
             const dx =
-                light.x - x;
+                light.x -
+                x;
 
 
             const dy =
-                light.y - y;
+                light.y -
+                y;
 
 
             const distance =
@@ -697,7 +750,7 @@ export class Renderer {
 
 
     // ========================================
-    // ENTITIES
+    // RENDER ENTITIES
     // ========================================
 
     renderEntities(
@@ -734,21 +787,19 @@ export class Renderer {
 
             this.renderEntity(
                 entity,
-                player,
-                entities
+                player
             );
         }
     }
 
 
     // ========================================
-    // ENTITY
+    // RENDER ENTITY
     // ========================================
 
     renderEntity(
         entity,
-        player,
-        entities
+        player
     ) {
 
         const dx =
@@ -769,8 +820,10 @@ export class Renderer {
 
 
         if (
-            distance < 0.1 ||
-            distance > 28
+            distance <
+            0.1 ||
+            distance >
+            35
         ) {
 
             return;
@@ -809,7 +862,8 @@ export class Renderer {
 
         if (
             Math.abs(angle) >
-            FOV / 2 + 0.15
+            FOV / 2 +
+            0.2
         ) {
 
             return;
@@ -844,7 +898,7 @@ export class Renderer {
                 correctedDistance
             ) *
             this.rows *
-            0.65;
+            0.62;
 
 
         const width =
@@ -859,21 +913,21 @@ export class Renderer {
             );
 
 
-        const centerY =
-            this.rows / 2;
+        const center =
+            this.rows *
+            0.48;
 
 
         const top =
             Math.floor(
-                centerY -
-                height / 2
+                center -
+                height
             );
 
 
         const bottom =
             Math.floor(
-                centerY +
-                height / 2
+                center
             );
 
 
@@ -891,19 +945,14 @@ export class Renderer {
             );
 
 
-        const brightness =
-            calculateBrightness(
-                correctedDistance,
-                28,
-                0,
-                this.night,
-                0
-            );
-
-
         let color =
             brightnessToColor(
-                brightness,
+                calculateBrightness(
+                    correctedDistance,
+                    35,
+                    0,
+                    this.night
+                ),
                 this.night
             );
 
@@ -915,7 +964,7 @@ export class Renderer {
 
             color =
                 lightColor(
-                    brightness
+                    1
                 );
         }
 
@@ -927,20 +976,15 @@ export class Renderer {
 
             color =
                 this.trafficColor(
-                    entity.state,
-                    brightness
+                    entity.state
                 );
         }
 
 
-        const sprite =
+        this.drawSprite(
             this.getSprite(
                 entity.type
-            );
-
-
-        this.drawSprite(
-            sprite,
+            ),
             left,
             top,
             right,
@@ -955,26 +999,24 @@ export class Renderer {
     // SPRITES
     // ========================================
 
-    getSprite(type) {
+    getSprite(
+        type
+    ) {
 
-        switch (type) {
+        switch (
+            type
+        ) {
 
             case "tree":
 
                 return [
 
                     "   /\\   ",
-
                     "  /@@\\  ",
-
                     " /@@@@\\ ",
-
                     "/@@@@@@\\",
-
                     "  /@@\\  ",
-
                     "   ||   ",
-
                     "   ||   "
 
                 ];
@@ -985,13 +1027,9 @@ export class Renderer {
                 return [
 
                     "   ____   ",
-
                     "  /____\\  ",
-
                     " /|[][]|\\ ",
-
                     "| |____| |",
-
                     " O      O "
 
                 ];
@@ -1002,9 +1040,7 @@ export class Renderer {
                 return [
 
                     " O ",
-
                     "/|\\",
-
                     "/ \\"
 
                 ];
@@ -1014,19 +1050,12 @@ export class Renderer {
 
                 return [
 
-                    "  ___ ",
-
-                    " /   |",
-
-                    "/    |",
-
-                    "     |",
-
-                    "     |",
-
-                    "     |",
-
-                    "     |"
+                    " ___ ",
+                    "/   |",
+                    "    |",
+                    "    |",
+                    "    |",
+                    "    |"
 
                 ];
 
@@ -1036,15 +1065,9 @@ export class Renderer {
                 return [
 
                     " | ",
-
                     "[R]",
-
                     "[Y]",
-
                     "[G]",
-
-                    " | ",
-
                     " | "
 
                 ];
@@ -1052,13 +1075,15 @@ export class Renderer {
 
             default:
 
-                return ["?"];
+                return [
+                    "?"
+                ];
         }
     }
 
 
     // ========================================
-    // SPRITE DRAW
+    // DRAW SPRITE
     // ========================================
 
     drawSprite(
@@ -1071,11 +1096,11 @@ export class Renderer {
         depth
     ) {
 
-        const spriteHeight =
+        const height =
             sprite.length;
 
 
-        const spriteWidth =
+        const width =
             Math.max(
                 ...sprite.map(
                     line =>
@@ -1086,7 +1111,7 @@ export class Renderer {
 
         for (
             let sy = 0;
-            sy < spriteHeight;
+            sy < height;
             sy++
         ) {
 
@@ -1114,7 +1139,7 @@ export class Renderer {
                     Math.floor(
                         (
                             sx /
-                            spriteWidth
+                            width
                         ) *
                         (
                             right -
@@ -1129,7 +1154,7 @@ export class Renderer {
                     Math.floor(
                         (
                             sy /
-                            spriteHeight
+                            height
                         ) *
                         (
                             bottom -
@@ -1152,43 +1177,37 @@ export class Renderer {
 
 
     // ========================================
-    // TRAFFIC COLOR
+    // TRAFFIC LIGHT COLOR
     // ========================================
 
     trafficColor(
-        state,
-        brightness
+        state
     ) {
 
-        const amount =
-            Math.floor(
-                70 +
-                brightness * 180
-            );
-
-
         if (
-            state === "red"
+            state ===
+            "red"
         ) {
 
-            return `rgb(${amount},40,40)`;
+            return "rgb(240,50,50)";
         }
 
 
         if (
-            state === "yellow"
+            state ===
+            "yellow"
         ) {
 
-            return `rgb(${amount},${amount},30)`;
+            return "rgb(240,220,50)";
         }
 
 
-        return `rgb(40,${amount},60)`;
+        return "rgb(50,230,80)";
     }
 
 
     // ========================================
-    // FLUSH
+    // FLUSH FRAME
     // ========================================
 
     flush() {
@@ -1311,10 +1330,35 @@ export class Renderer {
                     WORLD_MAP[y][x];
 
 
-                ctx.fillStyle =
-                    tile === "#"
-                        ? "#777"
-                        : "#111";
+                if (
+                    tile ===
+                    TILE.BUILDING
+                ) {
+
+                    ctx.fillStyle =
+                        "#777";
+
+                } else if (
+                    tile ===
+                    TILE.ROAD
+                ) {
+
+                    ctx.fillStyle =
+                        "#151515";
+
+                } else if (
+                    tile ===
+                    TILE.PARK
+                ) {
+
+                    ctx.fillStyle =
+                        "#263526";
+
+                } else {
+
+                    ctx.fillStyle =
+                        "#333";
+                }
 
 
                 ctx.fillRect(
@@ -1327,38 +1371,6 @@ export class Renderer {
         }
 
 
-        // Road markings.
-
-        ctx.strokeStyle =
-            "#555";
-
-
-        ctx.lineWidth = 1;
-
-
-        for (
-            const road
-            of roadMarkings
-        ) {
-
-            ctx.beginPath();
-
-            ctx.moveTo(
-                road.x1 * scaleX,
-                road.y1 * scaleY
-            );
-
-            ctx.lineTo(
-                road.x2 * scaleX,
-                road.y2 * scaleY
-            );
-
-            ctx.stroke();
-        }
-
-
-        // Player.
-
         const px =
             player.x *
             scaleX;
@@ -1369,11 +1381,13 @@ export class Renderer {
             scaleY;
 
 
+        // Player
         ctx.fillStyle =
             "#fff";
 
 
         ctx.beginPath();
+
 
         ctx.arc(
             px,
@@ -1383,14 +1397,17 @@ export class Renderer {
             Math.PI * 2
         );
 
+
         ctx.fill();
 
 
+        // Direction
         ctx.strokeStyle =
             "#fff";
 
 
         ctx.beginPath();
+
 
         ctx.moveTo(
             px,
@@ -1402,12 +1419,14 @@ export class Renderer {
             px +
             Math.cos(
                 player.angle
-            ) * 14,
+            ) *
+            14,
 
             py +
             Math.sin(
                 player.angle
-            ) * 14
+            ) *
+            14
         );
 
 
@@ -1431,21 +1450,26 @@ export class Renderer {
 
         this.drawGround();
 
+
         this.renderWalls(
             player,
             raycaster,
             entities
         );
 
+
         this.renderEntities(
             entities,
             player
         );
 
+
         this.flush();
+
 
         this.renderMinimap(
             player
         );
     }
 }
+

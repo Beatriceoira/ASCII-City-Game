@@ -1,44 +1,185 @@
-// ============================================
-// PLAYER.JS
-// ============================================
 
-import {
-    isWall
-} from "./world.js";
-
+// ========================================
+// ASCII CITY — PLAYER.JS
+// VERSION 4
+// ========================================
 
 export class Player {
 
+    // ========================================
+    // CONSTRUCTOR
+    // ========================================
+
     constructor(
-        x,
-        y,
-        angle
+        x = 12.5,
+        y = 12.5,
+        angle = 0
     ) {
 
-        this.x = x;
+        // ----------------------------------------
+        // POSITION
+        // ----------------------------------------
 
+        this.x = x;
         this.y = y;
 
+        // Direction in radians
         this.angle = angle;
 
-        this.moveSpeed = 4;
+
+        // ----------------------------------------
+        // MOVEMENT
+        // ----------------------------------------
+
+        this.moveSpeed = 4.0;
 
         this.rotationSpeed = 2.5;
 
-        this.radius = 0.2;
+        this.strafeSpeed = 3.0;
+
+
+        // ----------------------------------------
+        // SPRINT
+        // ----------------------------------------
+
+        this.sprintMultiplier = 1.8;
+
+
+        // ----------------------------------------
+        // COLLISION
+        // ----------------------------------------
+
+        this.radius = 0.20;
+
+
+        // ----------------------------------------
+        // CAMERA
+        // ----------------------------------------
+
+        this.height = 0.5;
+
+        this.pitch = 0;
+
+
+        // ----------------------------------------
+        // WORLD
+        // ----------------------------------------
+
+        // Version 4 obtains the city through
+        // world.js rather than passing a World
+        // object into the constructor.
+        this.world = null;
     }
 
 
+    // ========================================
+    // UPDATE
+    // ========================================
+
     update(
-        input,
-        deltaTime
+        deltaTime,
+        input
     ) {
+
+        // ----------------------------------------
+        // SAFETY
+        // ----------------------------------------
+
+        if (
+            !input ||
+            typeof input.isDown !== "function"
+        ) {
+            return;
+        }
+
+
+        // Prevent unusually large movement
+        // after the browser loses focus.
+        deltaTime =
+            Math.min(
+                deltaTime,
+                0.1
+            );
+
+    // ========================================
+        // MOUSE LOOK
+        // ========================================
+
+        if (
+            typeof input.getMouseDeltaX === "function"
+        ) {
+
+            const mouseX =
+                input.getMouseDeltaX();
+
+            this.angle +=
+                mouseX *
+                0.0025;
+        }
+
+
+        // ----------------------------------------
+        // ROTATION
+        // ----------------------------------------
+
+        let rotation = 0;
+
+
+        // A / LEFT
+        if (
+            input.isDown("KeyA") ||
+            input.isDown("ArrowLeft")
+        ) {
+
+            rotation -=
+                this.rotationSpeed *
+                deltaTime;
+        }
+
+
+        // D / RIGHT
+        if (
+            input.isDown("KeyD") ||
+            input.isDown("ArrowRight")
+        ) {
+
+            rotation +=
+                this.rotationSpeed *
+                deltaTime;
+        }
+
+
+        this.angle += rotation;
+
+
+        // ----------------------------------------
+        // NORMALIZE ANGLE
+        // ----------------------------------------
+
+        this.angle =
+            this.angle %
+            (Math.PI * 2);
+
+
+        if (
+            this.angle < 0
+        ) {
+
+            this.angle +=
+                Math.PI * 2;
+        }
+
+
+        // ----------------------------------------
+        // MOVEMENT INPUT
+        // ----------------------------------------
 
         let forward = 0;
 
         let strafe = 0;
 
 
+        // W / UP
         if (
             input.isDown("KeyW") ||
             input.isDown("ArrowUp")
@@ -48,6 +189,7 @@ export class Player {
         }
 
 
+        // S / DOWN
         if (
             input.isDown("KeyS") ||
             input.isDown("ArrowDown")
@@ -57,64 +199,27 @@ export class Player {
         }
 
 
+        // Q = STRAFE LEFT
         if (
-            input.isDown("KeyA")
+            input.isDown("KeyQ")
         ) {
 
             strafe -= 1;
         }
 
 
+        // E = STRAFE RIGHT
         if (
-            input.isDown("KeyD")
+            input.isDown("KeyE")
         ) {
 
             strafe += 1;
         }
 
 
-        this.move(
-            forward,
-            strafe,
-            deltaTime
-        );
-
-
-        if (
-            input.isDown("ArrowLeft")
-        ) {
-
-            this.rotate(
-                -1,
-                deltaTime
-            );
-        }
-
-
-        if (
-            input.isDown("ArrowRight")
-        ) {
-
-            this.rotate(
-                1,
-                deltaTime
-            );
-        }
-
-
-        this.angle +=
-            input.consumeMouseDelta();
-
-
-        this.normalizeAngle();
-    }
-
-
-    move(
-        forward,
-        strafe,
-        deltaTime
-    ) {
+        // ----------------------------------------
+        // NO MOVEMENT
+        // ----------------------------------------
 
         if (
             forward === 0 &&
@@ -125,27 +230,28 @@ export class Player {
         }
 
 
-        const magnitude =
-            Math.sqrt(
-                forward * forward +
-                strafe * strafe
-            );
+        // ----------------------------------------
+        // SPEED
+        // ----------------------------------------
+
+        let speed =
+            this.moveSpeed;
 
 
+        // Sprint
         if (
-            magnitude > 1
+            input.isDown("ShiftLeft") ||
+            input.isDown("ShiftRight")
         ) {
 
-            forward /= magnitude;
-
-            strafe /= magnitude;
+            speed *=
+                this.sprintMultiplier;
         }
 
 
-        const speed =
-            this.moveSpeed *
-            deltaTime;
-
+        // ----------------------------------------
+        // DIRECTION VECTORS
+        // ----------------------------------------
 
         const forwardX =
             Math.cos(this.angle);
@@ -161,28 +267,83 @@ export class Player {
             Math.cos(this.angle);
 
 
-        const dx =
+        // ----------------------------------------
+        // MOVEMENT VECTOR
+        // ----------------------------------------
+
+        let dx =
             (
-                forwardX * forward +
+                forwardX * forward
+            ) +
+            (
                 rightX * strafe
-            ) * speed;
+            );
 
 
-        const dy =
+        let dy =
             (
-                forwardY * forward +
+                forwardY * forward
+            ) +
+            (
                 rightY * strafe
-            ) * speed;
+            );
 
 
-        this.tryMove(
+        // ----------------------------------------
+        // NORMALIZE
+        // ----------------------------------------
+
+        const length =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+
+        if (
+            length <= 0
+        ) {
+
+            return;
+        }
+
+
+        dx /=
+            length;
+
+        dy /=
+            length;
+
+
+        // ----------------------------------------
+        // APPLY SPEED
+        // ----------------------------------------
+
+        dx *=
+            speed *
+            deltaTime;
+
+        dy *=
+            speed *
+            deltaTime;
+
+
+        // ----------------------------------------
+        // MOVE
+        // ----------------------------------------
+
+        this.move(
             dx,
             dy
         );
     }
 
 
-    tryMove(
+    // ========================================
+    // MOVE
+    // ========================================
+
+    move(
         dx,
         dy
     ) {
@@ -190,10 +351,13 @@ export class Player {
         const newX =
             this.x + dx;
 
-
         const newY =
             this.y + dy;
 
+
+        // ----------------------------------------
+        // X AXIS
+        // ----------------------------------------
 
         if (
             !this.collides(
@@ -202,9 +366,14 @@ export class Player {
             )
         ) {
 
-            this.x = newX;
+            this.x =
+                newX;
         }
 
+
+        // ----------------------------------------
+        // Y AXIS
+        // ----------------------------------------
 
         if (
             !this.collides(
@@ -213,70 +382,144 @@ export class Player {
             )
         ) {
 
-            this.y = newY;
+            this.y =
+                newY;
         }
     }
 
+
+    // ========================================
+    // COLLISION
+    // ========================================
 
     collides(
         x,
         y
     ) {
 
-        const r =
-            this.radius;
+        // ----------------------------------------
+        // WORLD NOT CONNECTED
+        // ----------------------------------------
+
+        if (
+            !this.world
+        ) {
+
+            return false;
+        }
 
 
-        return (
+        // ----------------------------------------
+        // isSolid()
+        // ----------------------------------------
 
-            isWall(
-                x + r,
-                y
-            ) ||
+        if (
+            typeof this.world.isSolid ===
+            "function"
+        ) {
 
-            isWall(
-                x - r,
-                y
-            ) ||
+            return (
+                this.world.isSolid(
+                    x - this.radius,
+                    y - this.radius
+                ) ||
 
-            isWall(
-                x,
-                y + r
-            ) ||
+                this.world.isSolid(
+                    x + this.radius,
+                    y - this.radius
+                ) ||
 
-            isWall(
-                x,
-                y - r
-            )
+                this.world.isSolid(
+                    x - this.radius,
+                    y + this.radius
+                ) ||
 
-        );
+                this.world.isSolid(
+                    x + this.radius,
+                    y + this.radius
+                )
+            );
+        }
+
+
+        // ----------------------------------------
+        // isBlocked()
+        // ----------------------------------------
+
+        if (
+            typeof this.world.isBlocked ===
+            "function"
+        ) {
+
+            return (
+                this.world.isBlocked(
+                    x - this.radius,
+                    y - this.radius
+                ) ||
+
+                this.world.isBlocked(
+                    x + this.radius,
+                    y - this.radius
+                ) ||
+
+                this.world.isBlocked(
+                    x - this.radius,
+                    y + this.radius
+                ) ||
+
+                this.world.isBlocked(
+                    x + this.radius,
+                    y + this.radius
+                )
+            );
+        }
+
+
+        // ----------------------------------------
+        // NO COLLISION API
+        // ----------------------------------------
+
+        return false;
     }
 
 
-    rotate(
-        direction,
-        deltaTime
+    // ========================================
+    // SET WORLD
+    // ========================================
+
+    setWorld(
+        world
     ) {
 
-        this.angle +=
-            direction *
-            this.rotationSpeed *
-            deltaTime;
-
-
-        this.normalizeAngle();
+        this.world =
+            world;
     }
 
 
-    normalizeAngle() {
+    // ========================================
+    // RESET
+    // ========================================
 
-        const twoPi =
-            Math.PI * 2;
+    reset(
+        x = 12.5,
+        y = 12.5,
+        angle = 0
+    ) {
 
+        this.x =
+            x;
+
+        this.y =
+            y;
 
         this.angle =
+            angle;
+
+
+        // Normalize angle
+        this.angle =
             this.angle %
-            twoPi;
+            (Math.PI * 2);
 
 
         if (
@@ -284,7 +527,90 @@ export class Player {
         ) {
 
             this.angle +=
-                twoPi;
+                Math.PI * 2;
         }
+
+
+        // Reset camera
+        this.pitch = 0;
+    }
+
+
+    // ========================================
+    // GET POSITION
+    // ========================================
+
+    getPosition() {
+
+        return {
+
+            x: this.x,
+
+            y: this.y,
+
+            angle: this.angle
+        };
+    }
+
+
+    // ========================================
+    // GET DIRECTION
+    // ========================================
+
+    getDirection() {
+
+        return {
+
+            x: Math.cos(
+                this.angle
+            ),
+
+            y: Math.sin(
+                this.angle
+            )
+        };
+    }
+
+
+    // ========================================
+    // GET FORWARD VECTOR
+    // ========================================
+
+    getForwardVector() {
+
+        return {
+
+            x:
+                Math.cos(
+                    this.angle
+                ),
+
+            y:
+                Math.sin(
+                    this.angle
+                )
+        };
+    }
+
+
+    // ========================================
+    // GET RIGHT VECTOR
+    // ========================================
+
+    getRightVector() {
+
+        return {
+
+            x:
+                -Math.sin(
+                    this.angle
+                ),
+
+            y:
+                Math.cos(
+                    this.angle
+                )
+        };
     }
 }
+

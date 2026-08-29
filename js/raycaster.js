@@ -1,11 +1,10 @@
 // ============================================
-// RAYCASTER.JS
+// RAYCASTER.JS — VERSION 4
 // ============================================
 
 import {
-    WORLD_MAP,
-    WORLD_WIDTH,
-    WORLD_HEIGHT
+    getTile,
+    TILE
 } from "./world.js";
 
 
@@ -13,7 +12,7 @@ export class Raycaster {
 
     constructor() {
 
-        this.maxDepth = 32;
+        this.maxDepth = 50;
     }
 
 
@@ -121,7 +120,7 @@ export class Raycaster {
 
         for (
             let i = 0;
-            i < 128;
+            i < 256;
             i++
         ) {
 
@@ -133,7 +132,8 @@ export class Raycaster {
                 sideDistX +=
                     deltaDistX;
 
-                mapX += stepX;
+                mapX +=
+                    stepX;
 
                 side = 0;
 
@@ -142,28 +142,23 @@ export class Raycaster {
                 sideDistY +=
                     deltaDistY;
 
-                mapY += stepY;
+                mapY +=
+                    stepY;
 
                 side = 1;
             }
 
 
-            if (
-                mapX < 0 ||
-                mapX >= WORLD_WIDTH ||
-                mapY < 0 ||
-                mapY >= WORLD_HEIGHT
-            ) {
-
-                return {
-                    hit: false,
-                    distance: this.maxDepth
-                };
-            }
+            const tile =
+                getTile(
+                    mapX,
+                    mapY
+                );
 
 
             if (
-                WORLD_MAP[mapY][mapX] === "#"
+                tile ===
+                TILE.BUILDING
             ) {
 
                 let distance;
@@ -228,12 +223,24 @@ export class Raycaster {
                         distance
                 };
             }
+
+
+            if (
+                i >= 255
+            ) {
+
+                break;
+            }
         }
 
 
         return {
+
             hit: false,
-            distance: this.maxDepth
+
+            distance:
+                this.maxDepth
+
         };
     }
 }

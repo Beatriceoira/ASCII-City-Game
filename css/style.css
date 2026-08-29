@@ -2,8 +2,10 @@
     box-sizing: border-box;
 }
 
+
 html,
 body {
+
     width: 100%;
     height: 100%;
 
@@ -12,7 +14,7 @@ body {
 
     overflow: hidden;
 
-    background: #030303;
+    background: #020204;
 
     font-family:
         "Courier New",
@@ -20,11 +22,14 @@ body {
         monospace;
 }
 
+
 body {
     position: relative;
 }
 
+
 #gameCanvas {
+
     position: absolute;
 
     left: 0;
@@ -35,12 +40,14 @@ body {
 
     display: block;
 
-    background: #030303;
+    background: #020204;
 
     cursor: crosshair;
 }
 
+
 #hud {
+
     position: fixed;
 
     left: 20px;
@@ -59,30 +66,48 @@ body {
     user-select: none;
 
     text-shadow:
-        0 0 5px rgba(255, 255, 255, 0.5);
+        0 0 5px rgba(255,255,255,0.5);
 }
 
+
 .title {
+
     font-size: 20px;
 
     font-weight: bold;
 
-    letter-spacing: 4px;
+    letter-spacing: 5px;
 
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
-#status {
-    opacity: 0.85;
+
+#status,
+#time,
+#seed {
+
+    opacity: 0.8;
+
+    margin-bottom: 2px;
+}
+
+
+#seed {
+
+    opacity: 0.55;
 
     margin-bottom: 10px;
 }
 
+
 .controls {
-    opacity: 0.5;
+
+    opacity: 0.4;
 }
 
+
 #crosshair {
+
     position: fixed;
 
     left: 50%;
@@ -99,60 +124,71 @@ body {
 
     pointer-events: none;
 
-    opacity: 0.6;
+    opacity: 0.55;
 
     text-shadow:
         0 0 6px white;
 }
 
+
 #minimap {
+
     position: fixed;
 
     right: 20px;
     bottom: 20px;
 
-    width: 190px;
-    height: 190px;
+    width: 220px;
+    height: 220px;
 
     padding: 5px;
 
     z-index: 20;
 
     background:
-        rgba(0, 0, 0, 0.75);
+        rgba(0,0,0,0.78);
 
     border:
         1px solid
-        rgba(255, 255, 255, 0.25);
+        rgba(255,255,255,0.25);
 
     pointer-events: none;
 }
 
+
 #minimapCanvas {
+
     display: block;
 
     width: 100%;
     height: 100%;
 }
 
+
 @media (max-width: 700px) {
 
     #hud {
-        top: 10px;
+
         left: 10px;
+        top: 10px;
 
         font-size: 10px;
     }
 
+
     .title {
+
         font-size: 15px;
     }
 
+
     #minimap {
-        width: 130px;
-        height: 130px;
+
+        width: 140px;
+        height: 140px;
 
         right: 10px;
         bottom: 10px;
     }
+
 }

@@ -1,5 +1,5 @@
 // ============================================
-// ENTITIES.JS
+// ENTITIES.JS — VERSION 4
 // ============================================
 
 import {
@@ -11,10 +11,6 @@ import {
     trafficLights
 } from "./world.js";
 
-
-// ============================================
-// BASE
-// ============================================
 
 class Entity {
 
@@ -35,7 +31,9 @@ class Entity {
     }
 
 
-    distanceTo(player) {
+    distanceTo(
+        player
+    ) {
 
         const dx =
             this.x -
@@ -67,13 +65,19 @@ export class Tree
         y
     ) {
 
-        super(x, y);
+        super(
+            x,
+            y
+        );
 
-        this.type = "tree";
+        this.type =
+            "tree";
 
-        this.height = 2.8;
+        this.height =
+            2.7;
 
-        this.width = 0.7;
+        this.width =
+            0.75;
     }
 }
 
@@ -92,17 +96,25 @@ export class Car
         speed
     ) {
 
-        super(x, y);
+        super(
+            x,
+            y
+        );
 
-        this.type = "car";
+        this.type =
+            "car";
 
-        this.angle = angle;
+        this.angle =
+            angle;
 
-        this.speed = speed;
+        this.speed =
+            speed;
 
-        this.height = 0.65;
+        this.height =
+            0.65;
 
-        this.width = 1;
+        this.width =
+            1.1;
     }
 
 
@@ -111,13 +123,17 @@ export class Car
     ) {
 
         const dx =
-            Math.cos(this.angle) *
+            Math.cos(
+                this.angle
+            ) *
             this.speed *
             deltaTime;
 
 
         const dy =
-            Math.sin(this.angle) *
+            Math.sin(
+                this.angle
+            ) *
             this.speed *
             deltaTime;
 
@@ -137,14 +153,50 @@ export class Car
             )
         ) {
 
-            this.x = nextX;
+            this.x =
+                nextX;
 
-            this.y = nextY;
+            this.y =
+                nextY;
 
         } else {
 
             this.angle +=
                 Math.PI;
+        }
+
+
+        // Wrap around city.
+
+        if (
+            this.x < 1
+        ) {
+
+            this.x = 78;
+        }
+
+
+        if (
+            this.x > 79
+        ) {
+
+            this.x = 1;
+        }
+
+
+        if (
+            this.y < 1
+        ) {
+
+            this.y = 78;
+        }
+
+
+        if (
+            this.y > 79
+        ) {
+
+            this.y = 1;
         }
     }
 }
@@ -164,7 +216,10 @@ export class Pedestrian
         speed
     ) {
 
-        super(x, y);
+        super(
+            x,
+            y
+        );
 
         this.type =
             "pedestrian";
@@ -176,7 +231,13 @@ export class Pedestrian
             speed;
 
         this.timer =
-            Math.random() * 3;
+            Math.random() * 4;
+
+        this.height =
+            1.7;
+
+        this.width =
+            0.35;
     }
 
 
@@ -207,13 +268,17 @@ export class Pedestrian
 
 
         const dx =
-            Math.cos(this.angle) *
+            Math.cos(
+                this.angle
+            ) *
             this.speed *
             deltaTime;
 
 
         const dy =
-            Math.sin(this.angle) *
+            Math.sin(
+                this.angle
+            ) *
             this.speed *
             deltaTime;
 
@@ -233,9 +298,11 @@ export class Pedestrian
             )
         ) {
 
-            this.x = nextX;
+            this.x =
+                nextX;
 
-            this.y = nextY;
+            this.y =
+                nextY;
 
         } else {
 
@@ -258,19 +325,22 @@ export class StreetLight
         y
     ) {
 
-        super(x, y);
+        super(
+            x,
+            y
+        );
 
         this.type =
             "streetLight";
 
         this.height =
-            3.0;
+            3;
 
         this.width =
             0.25;
 
         this.radius =
-            4.5;
+            5;
     }
 }
 
@@ -288,7 +358,10 @@ export class TrafficLight
         state
     ) {
 
-        super(x, y);
+        super(
+            x,
+            y
+        );
 
         this.type =
             "trafficLight";
@@ -311,72 +384,57 @@ export class TrafficLight
 
 export function createEntities() {
 
-    const trees =
-        treeSpawns.map(
-            point =>
-                new Tree(
-                    point.x,
-                    point.y
-                )
-        );
-
-
-    const cars =
-        carSpawns.map(
-            point =>
-                new Car(
-                    point.x,
-                    point.y,
-                    point.angle,
-                    point.speed
-                )
-        );
-
-
-    const pedestrians =
-        pedestrianSpawns.map(
-            point =>
-                new Pedestrian(
-                    point.x,
-                    point.y,
-                    point.angle,
-                    point.speed
-                )
-        );
-
-
-    const lights =
-        streetLights.map(
-            point =>
-                new StreetLight(
-                    point.x,
-                    point.y
-                )
-        );
-
-
-    const traffic =
-        trafficLights.map(
-            point =>
-                new TrafficLight(
-                    point.x,
-                    point.y,
-                    point.state
-                )
-        );
-
-
     return {
 
-        trees,
+        trees:
+            treeSpawns.map(
+                p =>
+                    new Tree(
+                        p.x,
+                        p.y
+                    )
+            ),
 
-        cars,
+        cars:
+            carSpawns.map(
+                p =>
+                    new Car(
+                        p.x,
+                        p.y,
+                        p.angle,
+                        p.speed
+                    )
+            ),
 
-        pedestrians,
+        pedestrians:
+            pedestrianSpawns.map(
+                p =>
+                    new Pedestrian(
+                        p.x,
+                        p.y,
+                        p.angle,
+                        p.speed
+                    )
+            ),
 
-        lights,
+        lights:
+            streetLights.map(
+                p =>
+                    new StreetLight(
+                        p.x,
+                        p.y
+                    )
+            ),
 
-        traffic
+        traffic:
+            trafficLights.map(
+                p =>
+                    new TrafficLight(
+                        p.x,
+                        p.y,
+                        p.state
+                    )
+            )
 
     };
 }
