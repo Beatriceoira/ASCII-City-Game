@@ -6,14 +6,17 @@ import {
     buildings,
     WORLD_MAP,
     WORLD_WIDTH,
-    WORLD_HEIGHT
+    WORLD_HEIGHT,
+    roadMarkings,
+    getBuildingAt
 } from "./world.js";
 
 import {
     calculateBrightness,
     brightnessToASCII,
     brightnessToColor,
-    clamp
+    lightColor,
+    pointLight
 } from "./lighting.js";
 
 
@@ -24,7 +27,8 @@ export class Renderer {
         minimapCanvas
     ) {
 
-        this.canvas = canvas;
+        this.canvas =
+            canvas;
 
         this.ctx =
             canvas.getContext(
@@ -45,9 +49,8 @@ export class Renderer {
 
         this.rows = 55;
 
-        this.cellWidth = 8;
 
-        this.cellHeight = 14;
+        this.night = false;
 
 
         this.resize();
@@ -56,6 +59,16 @@ export class Renderer {
         window.addEventListener(
             "resize",
             () => this.resize()
+        );
+
+
+        window.addEventListener(
+            "toggle-night",
+            () => {
+
+                this.night =
+                    !this.night;
+            }
         );
     }
 
@@ -92,13 +105,14 @@ export class Renderer {
         this.ctx.textAlign =
             "center";
 
+
         this.ctx.textBaseline =
             "middle";
     }
 
 
     // ========================================
-    // FRAME BUFFER
+    // FRAME
     // ========================================
 
     createFrame() {
@@ -128,7 +142,8 @@ export class Renderer {
             i++
         ) {
 
-            this.characters[i] = " ";
+            this.characters[i] =
+                " ";
 
             this.colors[i] =
                 "rgb(0,0,0)";
@@ -147,10 +162,6 @@ export class Renderer {
     }
 
 
-    // ========================================
-    // FRAME INDEX
-    // ========================================
-
     index(
         x,
         y
@@ -163,10 +174,6 @@ export class Renderer {
         );
     }
 
-
-    // ========================================
-    // PUT CHARACTER
-    // ========================================
 
     put(
         x,
@@ -187,15 +194,6 @@ export class Renderer {
         }
 
 
-        const index =
-            this.index(
-                x,
-                y
-            );
-
-
-        // Depth buffer.
-
         if (
             depth >
             this.depthBuffer[x]
@@ -203,6 +201,13 @@ export class Renderer {
 
             return;
         }
+
+
+        const index =
+            this.index(
+                x,
+                y
+            );
 
 
         this.characters[index] =
@@ -217,33 +222,57 @@ export class Renderer {
 
 
     // ========================================
-    // DRAW SKY
+    // SKY
     // ========================================
 
     drawSky() {
 
-        for (
-            let y = 0;
-            y < Math.floor(
+        const horizon =
+            Math.floor(
                 this.rows / 2
             );
+
+
+        for (
+            let y = 0;
+            y < horizon;
             y++
         ) {
 
-            const normalized =
+            const t =
                 y /
-                (this.rows / 2);
+                horizon;
 
 
-            const brightness =
-                0.03 +
-                (1 - normalized) *
-                0.04;
+            let brightness;
+
+
+            if (
+                this.night
+            ) {
+
+                brightness =
+                    0.025 +
+                    (
+                        1 - t
+                    ) *
+                    0.025;
+
+            } else {
+
+                brightness =
+                    0.04 +
+                    (
+                        1 - t
+                    ) *
+                    0.08;
+            }
 
 
             const value =
                 Math.floor(
-                    brightness * 255
+                    brightness *
+                    255
                 );
 
 
@@ -257,20 +286,26 @@ export class Renderer {
                 x++
             ) {
 
-                this.put(
-                    x,
-                    y,
-                    " ",
-                    color,
-                    Infinity
-                );
+                this.characters[
+                    this.index(
+                        x,
+                        y
+                    )
+                ] = " ";
+
+                this.colors[
+                    this.index(
+                        x,
+                        y
+                    )
+                ] = color;
             }
         }
     }
 
 
     // ========================================
-    // DRAW GROUND
+    // GROUND
     // ========================================
 
     drawGround() {
@@ -287,7 +322,7 @@ export class Renderer {
             y++
         ) {
 
-            const distanceFromHorizon =
+            const t =
                 (
                     y -
                     horizon
@@ -299,14 +334,15 @@ export class Renderer {
 
 
             const brightness =
-                0.16 -
-                distanceFromHorizon *
-                0.11;
+                this.night
+                    ? 0.025 - t * 0.015
+                    : 0.13 - t * 0.08;
 
 
             const value =
                 Math.floor(
-                    brightness * 255
+                    brightness *
+                    255
                 );
 
 
@@ -314,25 +350,10 @@ export class Renderer {
                 `rgb(${value},${value},${value})`;
 
 
-            let character = ".";
-
-
-            if (
-                distanceFromHorizon >
-                0.35
-            ) {
-
-                character = ",";
-            }
-
-
-            if (
-                distanceFromHorizon >
-                0.7
-            ) {
-
-                character = ":";
-            }
+            const character =
+                t > 0.65
+                    ? ":"
+                    : ".";
 
 
             for (
@@ -347,9 +368,6 @@ export class Renderer {
                         y
                     );
 
-
-                // Ground should not
-                // overwrite nearer objects.
 
                 if (
                     this.characters[index] ===
@@ -368,12 +386,13 @@ export class Renderer {
 
 
     // ========================================
-    // RENDER WALLS
+    // WALLS
     // ========================================
 
     renderWalls(
         player,
-        raycaster
+        raycaster,
+        entities
     ) {
 
         const FOV =
@@ -387,12 +406,9 @@ export class Renderer {
         ) {
 
             const cameraX =
+                column /
                 (
-                    column /
-                    (
-                        this.columns -
-                        1
-                    )
+                    this.columns - 1
                 );
 
 
@@ -427,7 +443,7 @@ export class Renderer {
 
 
             const building =
-                this.getBuildingAt(
+                getBuildingAt(
                     ray.mapX,
                     ray.mapY
                 );
@@ -465,11 +481,21 @@ export class Renderer {
                 );
 
 
+            const localLight =
+                this.getLocalLight(
+                    ray.hitX,
+                    ray.hitY,
+                    entities
+                );
+
+
             const brightness =
                 calculateBrightness(
                     correctedDistance,
                     raycaster.maxDepth,
-                    ray.side
+                    ray.side,
+                    this.night,
+                    localLight
                 );
 
 
@@ -481,7 +507,8 @@ export class Renderer {
 
             const color =
                 brightnessToColor(
-                    brightness
+                    brightness,
+                    this.night
                 );
 
 
@@ -491,15 +518,6 @@ export class Renderer {
                 row++
             ) {
 
-                if (
-                    row < 0 ||
-                    row >= this.rows
-                ) {
-
-                    continue;
-                }
-
-
                 this.put(
                     column,
                     row,
@@ -508,44 +526,178 @@ export class Renderer {
                     correctedDistance
                 );
             }
-        }
-    }
 
 
-    // ========================================
-    // FIND BUILDING
-    // ========================================
-
-    getBuildingAt(
-        mapX,
-        mapY
-    ) {
-
-        for (
-            const building
-            of buildings
-        ) {
+            // Building windows.
 
             if (
-                mapX >= building.x &&
-                mapX < building.x +
-                    building.width &&
-                mapY >= building.y &&
-                mapY < building.y +
-                    building.depth
+                building &&
+                building.windows
             ) {
 
-                return building;
+                this.renderWindows(
+                    column,
+                    top,
+                    bottom,
+                    correctedDistance,
+                    building
+                );
             }
         }
-
-
-        return null;
     }
 
 
     // ========================================
-    // RENDER ENTITIES
+    // WINDOWS
+    // ========================================
+
+    renderWindows(
+        column,
+        top,
+        bottom,
+        depth,
+        building
+    ) {
+
+        const height =
+            bottom - top;
+
+
+        if (
+            height < 8
+        ) {
+
+            return;
+        }
+
+
+        const rows =
+            Math.min(
+                building.windowRows,
+                Math.floor(
+                    height / 6
+                )
+            );
+
+
+        for (
+            let i = 1;
+            i <= rows;
+            i++
+        ) {
+
+            const y =
+                Math.floor(
+                    top +
+                    (
+                        i /
+                        (
+                            rows + 1
+                        )
+                    ) *
+                    height
+                );
+
+
+            if (
+                this.night
+            ) {
+
+                const lit =
+                    (
+                        (
+                            column * 7 +
+                            i * 13
+                        ) %
+                        5
+                    ) !== 0;
+
+
+                if (
+                    lit
+                ) {
+
+                    this.put(
+                        column,
+                        y,
+                        "[]",
+                        "rgb(220,180,80)",
+                        depth - 0.001
+                    );
+                }
+
+            } else {
+
+                this.put(
+                    column,
+                    y,
+                    ".",
+                    "rgb(100,100,100)",
+                    depth - 0.001
+                );
+            }
+        }
+    }
+
+
+    // ========================================
+    // LOCAL LIGHT
+    // ========================================
+
+    getLocalLight(
+        x,
+        y,
+        entities
+    ) {
+
+        if (
+            !this.night
+        ) {
+
+            return 0;
+        }
+
+
+        let result = 0;
+
+
+        for (
+            const light
+            of entities.lights
+        ) {
+
+            const dx =
+                light.x - x;
+
+
+            const dy =
+                light.y - y;
+
+
+            const distance =
+                Math.sqrt(
+                    dx * dx +
+                    dy * dy
+                );
+
+
+            result +=
+                pointLight(
+                    distance,
+                    light.radius
+                );
+        }
+
+
+        return Math.min(
+            result,
+            1
+        );
+    }
+
+
+    // ========================================
+    // ENTITIES
     // ========================================
 
     renderEntities(
@@ -553,19 +705,22 @@ export class Renderer {
         player
     ) {
 
-        const allEntities = [
+        const all = [
 
             ...entities.trees,
 
             ...entities.cars,
 
-            ...entities.pedestrians
+            ...entities.pedestrians,
+
+            ...entities.lights,
+
+            ...entities.traffic
+
         ];
 
 
-        // Far → near.
-
-        allEntities.sort(
+        all.sort(
             (a, b) =>
                 b.distanceTo(player) -
                 a.distanceTo(player)
@@ -574,24 +729,26 @@ export class Renderer {
 
         for (
             const entity
-            of allEntities
+            of all
         ) {
 
             this.renderEntity(
                 entity,
-                player
+                player,
+                entities
             );
         }
     }
 
 
     // ========================================
-    // ENTITY PROJECTION
+    // ENTITY
     // ========================================
 
     renderEntity(
         entity,
-        player
+        player,
+        entities
     ) {
 
         const dx =
@@ -620,7 +777,7 @@ export class Renderer {
         }
 
 
-        let relativeAngle =
+        let angle =
             Math.atan2(
                 dy,
                 dx
@@ -629,21 +786,19 @@ export class Renderer {
 
 
         while (
-            relativeAngle >
-            Math.PI
+            angle > Math.PI
         ) {
 
-            relativeAngle -=
+            angle -=
                 Math.PI * 2;
         }
 
 
         while (
-            relativeAngle <
-            -Math.PI
+            angle < -Math.PI
         ) {
 
-            relativeAngle +=
+            angle +=
                 Math.PI * 2;
         }
 
@@ -653,11 +808,8 @@ export class Renderer {
 
 
         if (
-            Math.abs(
-                relativeAngle
-            ) >
-            FOV / 2 +
-            0.15
+            Math.abs(angle) >
+            FOV / 2 + 0.15
         ) {
 
             return;
@@ -666,7 +818,7 @@ export class Renderer {
 
         const screenX =
             (
-                relativeAngle /
+                angle /
                 FOV +
                 0.5
             ) *
@@ -675,9 +827,7 @@ export class Renderer {
 
         const correctedDistance =
             distance *
-            Math.cos(
-                relativeAngle
-            );
+            Math.cos(angle);
 
 
         if (
@@ -688,7 +838,7 @@ export class Renderer {
         }
 
 
-        const projectedHeight =
+        const height =
             (
                 entity.height /
                 correctedDistance
@@ -697,7 +847,7 @@ export class Renderer {
             0.65;
 
 
-        const projectedWidth =
+        const width =
             Math.max(
                 1,
                 (
@@ -716,42 +866,71 @@ export class Renderer {
         const top =
             Math.floor(
                 centerY -
-                projectedHeight / 2
+                height / 2
             );
 
 
         const bottom =
             Math.floor(
                 centerY +
-                projectedHeight / 2
+                height / 2
             );
 
 
         const left =
             Math.floor(
                 screenX -
-                projectedWidth / 2
+                width / 2
             );
 
 
         const right =
             Math.ceil(
                 screenX +
-                projectedWidth / 2
+                width / 2
             );
 
 
         const brightness =
             calculateBrightness(
                 correctedDistance,
-                28
+                28,
+                0,
+                this.night,
+                0
             );
 
 
-        const color =
+        let color =
             brightnessToColor(
-                brightness
+                brightness,
+                this.night
             );
+
+
+        if (
+            entity.type ===
+            "streetLight"
+        ) {
+
+            color =
+                lightColor(
+                    brightness
+                );
+        }
+
+
+        if (
+            entity.type ===
+            "trafficLight"
+        ) {
+
+            color =
+                this.trafficColor(
+                    entity.state,
+                    brightness
+                );
+        }
 
 
         const sprite =
@@ -759,6 +938,138 @@ export class Renderer {
                 entity.type
             );
 
+
+        this.drawSprite(
+            sprite,
+            left,
+            top,
+            right,
+            bottom,
+            color,
+            correctedDistance
+        );
+    }
+
+
+    // ========================================
+    // SPRITES
+    // ========================================
+
+    getSprite(type) {
+
+        switch (type) {
+
+            case "tree":
+
+                return [
+
+                    "   /\\   ",
+
+                    "  /@@\\  ",
+
+                    " /@@@@\\ ",
+
+                    "/@@@@@@\\",
+
+                    "  /@@\\  ",
+
+                    "   ||   ",
+
+                    "   ||   "
+
+                ];
+
+
+            case "car":
+
+                return [
+
+                    "   ____   ",
+
+                    "  /____\\  ",
+
+                    " /|[][]|\\ ",
+
+                    "| |____| |",
+
+                    " O      O "
+
+                ];
+
+
+            case "pedestrian":
+
+                return [
+
+                    " O ",
+
+                    "/|\\",
+
+                    "/ \\"
+
+                ];
+
+
+            case "streetLight":
+
+                return [
+
+                    "  ___ ",
+
+                    " /   |",
+
+                    "/    |",
+
+                    "     |",
+
+                    "     |",
+
+                    "     |",
+
+                    "     |"
+
+                ];
+
+
+            case "trafficLight":
+
+                return [
+
+                    " | ",
+
+                    "[R]",
+
+                    "[Y]",
+
+                    "[G]",
+
+                    " | ",
+
+                    " | "
+
+                ];
+
+
+            default:
+
+                return ["?"];
+        }
+    }
+
+
+    // ========================================
+    // SPRITE DRAW
+    // ========================================
+
+    drawSprite(
+        sprite,
+        left,
+        top,
+        right,
+        bottom,
+        color,
+        depth
+    ) {
 
         const spriteHeight =
             sprite.length;
@@ -781,7 +1092,8 @@ export class Renderer {
 
             for (
                 let sx = 0;
-                sx < sprite[sy].length;
+                sx <
+                sprite[sy].length;
                 sx++
             ) {
 
@@ -797,7 +1109,7 @@ export class Renderer {
                 }
 
 
-                const screenCellX =
+                const x =
                     left +
                     Math.floor(
                         (
@@ -812,7 +1124,7 @@ export class Renderer {
                     );
 
 
-                const screenCellY =
+                const y =
                     top +
                     Math.floor(
                         (
@@ -828,11 +1140,11 @@ export class Renderer {
 
 
                 this.put(
-                    screenCellX,
-                    screenCellY,
+                    x,
+                    y,
                     char,
                     color,
-                    correctedDistance
+                    depth
                 );
             }
         }
@@ -840,56 +1152,43 @@ export class Renderer {
 
 
     // ========================================
-    // SPRITES
+    // TRAFFIC COLOR
     // ========================================
 
-    getSprite(type) {
+    trafficColor(
+        state,
+        brightness
+    ) {
 
-        switch (type) {
-
-            case "tree":
-
-                return [
-
-                    "  /\\  ",
-                    " /@@\\ ",
-                    "/@@@@\\",
-                    " /@@\\ ",
-                    "  ||  ",
-                    "  ||  "
-                ];
+        const amount =
+            Math.floor(
+                70 +
+                brightness * 180
+            );
 
 
-            case "car":
+        if (
+            state === "red"
+        ) {
 
-                return [
-
-                    "  ____  ",
-                    " /____\\ ",
-                    "|[][][]|",
-                    " O    O "
-                ];
-
-
-            case "pedestrian":
-
-                return [
-
-                    " O ",
-                    "/|\\",
-                    "/ \\"
-                ];
-
-
-            default:
-
-                return ["?"];
+            return `rgb(${amount},40,40)`;
         }
+
+
+        if (
+            state === "yellow"
+        ) {
+
+            return `rgb(${amount},${amount},30)`;
+        }
+
+
+        return `rgb(40,${amount},60)`;
     }
 
 
     // ========================================
-    // FLUSH FRAME
+    // FLUSH
     // ========================================
 
     flush() {
@@ -921,12 +1220,12 @@ export class Renderer {
                     );
 
 
-                const character =
+                const char =
                     this.characters[index];
 
 
                 if (
-                    character === " "
+                    char === " "
                 ) {
 
                     continue;
@@ -938,51 +1237,19 @@ export class Renderer {
 
 
                 this.ctx.fillText(
-                    character,
+                    char,
                     x *
                         this.cellWidth +
-                        this.cellWidth / 2,
+                        this.cellWidth /
+                        2,
 
                     y *
                         this.cellHeight +
-                        this.cellHeight / 2
+                        this.cellHeight /
+                        2
                 );
             }
         }
-    }
-
-
-    // ========================================
-    // MAIN RENDER
-    // ========================================
-
-    render(
-        player,
-        raycaster,
-        entities
-    ) {
-
-        this.createFrame();
-
-        this.drawSky();
-
-        this.drawGround();
-
-        this.renderWalls(
-            player,
-            raycaster
-        );
-
-        this.renderEntities(
-            entities,
-            player
-        );
-
-        this.flush();
-
-        this.renderMinimap(
-            player
-        );
     }
 
 
@@ -997,12 +1264,14 @@ export class Renderer {
         const canvas =
             this.minimapCanvas;
 
+
         const ctx =
             this.minimapCtx;
 
 
         canvas.width =
             canvas.clientWidth;
+
 
         canvas.height =
             canvas.clientHeight;
@@ -1042,18 +1311,10 @@ export class Renderer {
                     WORLD_MAP[y][x];
 
 
-                if (
+                ctx.fillStyle =
                     tile === "#"
-                ) {
-
-                    ctx.fillStyle =
-                        "#777";
-
-                } else {
-
-                    ctx.fillStyle =
-                        "#111";
-                }
+                        ? "#777"
+                        : "#111";
 
 
                 ctx.fillRect(
@@ -1066,7 +1327,37 @@ export class Renderer {
         }
 
 
-        // Player
+        // Road markings.
+
+        ctx.strokeStyle =
+            "#555";
+
+
+        ctx.lineWidth = 1;
+
+
+        for (
+            const road
+            of roadMarkings
+        ) {
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                road.x1 * scaleX,
+                road.y1 * scaleY
+            );
+
+            ctx.lineTo(
+                road.x2 * scaleX,
+                road.y2 * scaleY
+            );
+
+            ctx.stroke();
+        }
+
+
+        // Player.
 
         const px =
             player.x *
@@ -1095,8 +1386,6 @@ export class Renderer {
         ctx.fill();
 
 
-        // Direction
-
         ctx.strokeStyle =
             "#fff";
 
@@ -1113,15 +1402,50 @@ export class Renderer {
             px +
             Math.cos(
                 player.angle
-            ) * 12,
+            ) * 14,
 
             py +
             Math.sin(
                 player.angle
-            ) * 12
+            ) * 14
         );
 
 
         ctx.stroke();
+    }
+
+
+    // ========================================
+    // MAIN RENDER
+    // ========================================
+
+    render(
+        player,
+        raycaster,
+        entities
+    ) {
+
+        this.createFrame();
+
+        this.drawSky();
+
+        this.drawGround();
+
+        this.renderWalls(
+            player,
+            raycaster,
+            entities
+        );
+
+        this.renderEntities(
+            entities,
+            player
+        );
+
+        this.flush();
+
+        this.renderMinimap(
+            player
+        );
     }
 }

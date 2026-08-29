@@ -2,6 +2,7 @@
 // WORLD.JS
 // ============================================
 
+
 export const WORLD_MAP = [
 
     "################################",
@@ -43,20 +44,17 @@ export const WORLD_HEIGHT =
     WORLD_MAP.length;
 
 
-// ============================================
-// TILE TYPES
-// ============================================
-
 export const TILE = {
 
     EMPTY: ".",
 
     WALL: "#"
+
 };
 
 
 // ============================================
-// GET TILE
+// TILE ACCESS
 // ============================================
 
 export function getTile(x, y) {
@@ -83,10 +81,6 @@ export function getTile(x, y) {
 }
 
 
-// ============================================
-// WALL CHECK
-// ============================================
-
 export function isWall(x, y) {
 
     return (
@@ -102,72 +96,224 @@ export function isWall(x, y) {
 export const buildings = [
 
     {
+        id: "A01",
+
         x: 2,
         y: 2,
+
         width: 4,
         depth: 3,
+
         height: 8,
-        name: "Apartment"
+
+        windows: true,
+
+        windowRows: 5,
+
+        windowColumns: 3
     },
 
+
     {
+        id: "A02",
+
         x: 9,
         y: 2,
+
         width: 4,
         depth: 3,
+
         height: 12,
-        name: "Tower"
+
+        windows: true,
+
+        windowRows: 8,
+
+        windowColumns: 3
     },
 
+
     {
+        id: "A03",
+
         x: 18,
         y: 2,
+
         width: 5,
         depth: 4,
+
         height: 16,
-        name: "Office"
+
+        windows: true,
+
+        windowRows: 10,
+
+        windowColumns: 4
     },
 
+
     {
+        id: "A04",
+
         x: 25,
         y: 5,
+
         width: 4,
         depth: 4,
+
         height: 10,
-        name: "Hotel"
+
+        windows: true,
+
+        windowRows: 6,
+
+        windowColumns: 3
     },
 
+
     {
+        id: "A05",
+
         x: 5,
         y: 12,
+
         width: 4,
         depth: 3,
+
         height: 7,
-        name: "Store"
+
+        windows: true,
+
+        windowRows: 4,
+
+        windowColumns: 3
     },
 
+
     {
+        id: "A06",
+
         x: 19,
         y: 16,
+
         width: 4,
         depth: 4,
+
         height: 11,
-        name: "Apartment"
+
+        windows: true,
+
+        windowRows: 7,
+
+        windowColumns: 3
     },
 
+
     {
+        id: "A07",
+
         x: 25,
         y: 20,
+
         width: 4,
         depth: 3,
+
         height: 8,
-        name: "Office"
+
+        windows: true,
+
+        windowRows: 5,
+
+        windowColumns: 3
     }
+
 ];
 
 
 // ============================================
-// PLAYER SPAWN
+// STREET LIGHTS
+// ============================================
+
+export const streetLights = [
+
+    { x: 7.5, y: 9.5 },
+    { x: 14.5, y: 9.5 },
+    { x: 21.5, y: 9.5 },
+    { x: 28.5, y: 9.5 },
+
+    { x: 10.5, y: 15.5 },
+    { x: 15.5, y: 15.5 },
+    { x: 24.5, y: 15.5 },
+
+    { x: 4.5, y: 20.5 },
+    { x: 14.5, y: 23.5 },
+    { x: 23.5, y: 25.5 }
+
+];
+
+
+// ============================================
+// TRAFFIC LIGHTS
+// ============================================
+
+export const trafficLights = [
+
+    {
+        x: 7.8,
+        y: 9.8,
+        state: "green"
+    },
+
+    {
+        x: 21.8,
+        y: 9.8,
+        state: "red"
+    },
+
+    {
+        x: 14.8,
+        y: 15.8,
+        state: "yellow"
+    }
+
+];
+
+
+// ============================================
+// ROAD MARKINGS
+// ============================================
+
+export const roadMarkings = [
+
+    {
+        x1: 1,
+        y1: 9.5,
+
+        x2: 30,
+        y2: 9.5
+    },
+
+    {
+        x1: 10,
+        y1: 1,
+
+        x2: 10,
+        y2: 27
+    },
+
+    {
+        x1: 21,
+        y1: 1,
+
+        x2: 21,
+        y2: 27
+    }
+
+];
+
+
+// ============================================
+// PLAYER
 // ============================================
 
 export const playerSpawn = {
@@ -177,6 +323,7 @@ export const playerSpawn = {
     y: 8.5,
 
     angle: Math.PI / 2
+
 };
 
 
@@ -198,6 +345,7 @@ export const treeSpawns = [
 
     { x: 29.5, y: 12.5 },
     { x: 12.5, y: 23.5 }
+
 ];
 
 
@@ -210,23 +358,30 @@ export const carSpawns = [
     {
         x: 10.5,
         y: 9.5,
+
         angle: 0,
+
         speed: 1.0
     },
 
     {
         x: 21.5,
         y: 9.5,
+
         angle: Math.PI,
+
         speed: 0.7
     },
 
     {
         x: 15.5,
         y: 15.5,
+
         angle: 0,
+
         speed: 0.8
     }
+
 ];
 
 
@@ -239,28 +394,71 @@ export const pedestrianSpawns = [
     {
         x: 7.5,
         y: 9.5,
+
         angle: 0,
+
         speed: 0.35
     },
 
     {
         x: 18.5,
         y: 9.5,
+
         angle: Math.PI,
+
         speed: 0.3
     },
 
     {
         x: 13.5,
         y: 15.5,
+
         angle: 0,
+
         speed: 0.25
     },
 
     {
         x: 26.5,
         y: 14.5,
+
         angle: Math.PI,
+
         speed: 0.25
     }
+
 ];
+
+
+// ============================================
+// BUILDING LOOKUP
+// ============================================
+
+export function getBuildingAt(
+    mapX,
+    mapY
+) {
+
+    for (
+        const building
+        of buildings
+    ) {
+
+        if (
+            mapX >= building.x &&
+            mapX <
+                building.x +
+                building.width &&
+
+            mapY >= building.y &&
+            mapY <
+                building.y +
+                building.depth
+        ) {
+
+            return building;
+        }
+    }
+
+    return null;
+}

@@ -26,12 +26,14 @@ export class Raycaster {
         const rayDirX =
             Math.cos(angle);
 
+
         const rayDirY =
             Math.sin(angle);
 
 
         let mapX =
             Math.floor(originX);
+
 
         let mapY =
             Math.floor(originY);

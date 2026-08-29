@@ -2,6 +2,7 @@
 // INPUT.JS
 // ============================================
 
+
 export class Input {
 
     constructor(canvas) {
@@ -22,20 +23,16 @@ export class Input {
     }
 
 
-    // ========================================
-    // KEYBOARD
-    // ========================================
-
     setupKeyboard() {
 
         window.addEventListener(
             "keydown",
-            (event) => {
+            event => {
 
-                this.keys.add(event.code);
+                this.keys.add(
+                    event.code
+                );
 
-                // Prevent browser scrolling
-                // when using movement keys.
 
                 if (
                     [
@@ -43,15 +40,35 @@ export class Input {
                         "KeyA",
                         "KeyS",
                         "KeyD",
+
                         "ArrowUp",
                         "ArrowDown",
+
                         "ArrowLeft",
                         "ArrowRight",
+
                         "Space"
-                    ].includes(event.code)
+                    ].includes(
+                        event.code
+                    )
                 ) {
 
                     event.preventDefault();
+                }
+
+
+                // Toggle night mode.
+
+                if (
+                    event.code === "KeyN" &&
+                    !event.repeat
+                ) {
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "toggle-night"
+                        )
+                    );
                 }
             }
         );
@@ -59,15 +76,14 @@ export class Input {
 
         window.addEventListener(
             "keyup",
-            (event) => {
+            event => {
 
-                this.keys.delete(event.code);
+                this.keys.delete(
+                    event.code
+                );
             }
         );
 
-
-        // Important:
-        // Clear keys if the browser loses focus.
 
         window.addEventListener(
             "blur",
@@ -78,10 +94,6 @@ export class Input {
         );
     }
 
-
-    // ========================================
-    // MOUSE
-    // ========================================
 
     setupMouse() {
 
@@ -107,11 +119,15 @@ export class Input {
 
         document.addEventListener(
             "mousemove",
-            (event) => {
+            event => {
 
-                if (!this.pointerLocked) {
+                if (
+                    !this.pointerLocked
+                ) {
+
                     return;
                 }
+
 
                 this.mouseDelta +=
                     event.movementX *
@@ -121,19 +137,11 @@ export class Input {
     }
 
 
-    // ========================================
-    // CHECK KEY
-    // ========================================
-
     isDown(code) {
 
         return this.keys.has(code);
     }
 
-
-    // ========================================
-    // MOUSE DELTA
-    // ========================================
 
     consumeMouseDelta() {
 

@@ -1,51 +1,59 @@
-ASCII City
+# ASCII City
 
-A custom pseudo-3D city renderer built from scratch using JavaScript, HTML Canvas, and ASCII characters.
+A pseudo-3D city rendered entirely from ASCII characters using JavaScript and HTML Canvas.
 
-The project does not use Unity, Unreal Engine, Three.js, 3D models, textures, or shaders.
+The project is built from scratch without Unity, Unreal Engine, Three.js, 3D models, textures, or shaders.
 
-The goal is to explore how a small 3D-like environment can be rendered using raycasting, perspective projection, depth buffering, and ASCII characters.
+The renderer uses raycasting, perspective projection, a depth buffer, ASCII sprites, distance-based lighting, and dynamic entities to create the illusion of a 3D city.
 
+---
 
-Version 2
+# Version 3
 
-Version 2 introduces a proper depth-aware rendering architecture.
+Version 3 introduces dynamic environmental rendering and a more convincing city atmosphere.
 
-Features
+## Features
 
-- First-person camera
 - DDA raycasting
 - Perspective projection
 - Depth buffer
-- ASCII framebuffer
-- Distance-based lighting
+- ASCII rendering
+- Distance-based brightness
 - Atmospheric fog
 - Buildings with different heights
-- Multi-character tree sprites
-- Multi-character car sprites
-- Pedestrian sprites
-- Moving cars
-- Moving pedestrians
+- Building windows
+- Street lights
+- Traffic lights
+- Cars
+- Pedestrians
+- Trees
+- Dynamic entities
 - Collision detection
 - WASD movement
 - Arrow-key rotation
 - Mouse look
 - Minimap
 - FPS counter
-- Vanilla JavaScript
-- No external libraries
+- Day/night lighting
+- Local street-light illumination
+- Colored ASCII
+- Road markings
 
-Technologies
+---
+
+# Technologies
 
 - HTML5
 - CSS3
 - JavaScript
 - HTML Canvas
-- JavaScript ES Modules
+- ES Modules
 
-No external dependencies are required.
+No external libraries are required.
 
-Project Structure
+---
+
+# Project Structure
 
 ```text
 ascii-city/

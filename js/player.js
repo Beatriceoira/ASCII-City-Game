@@ -21,14 +21,11 @@ export class Player {
 
         this.angle = angle;
 
-        // Movement speed in world units/second.
         this.moveSpeed = 4;
 
-        // Rotation speed.
         this.rotationSpeed = 2.5;
 
-        // Collision radius.
-        this.radius = 0.20;
+        this.radius = 0.2;
     }
 
 
@@ -41,10 +38,6 @@ export class Player {
 
         let strafe = 0;
 
-
-        // ====================================
-        // FORWARD / BACKWARD
-        // ====================================
 
         if (
             input.isDown("KeyW") ||
@@ -64,10 +57,6 @@ export class Player {
         }
 
 
-        // ====================================
-        // STRAFE
-        // ====================================
-
         if (
             input.isDown("KeyA")
         ) {
@@ -84,20 +73,12 @@ export class Player {
         }
 
 
-        // ====================================
-        // MOVE
-        // ====================================
-
         this.move(
             forward,
             strafe,
             deltaTime
         );
 
-
-        // ====================================
-        // KEYBOARD ROTATION
-        // ====================================
 
         if (
             input.isDown("ArrowLeft")
@@ -121,25 +102,13 @@ export class Player {
         }
 
 
-        // ====================================
-        // MOUSE ROTATION
-        // ====================================
-
-        const mouseDelta =
-            input.consumeMouseDelta();
-
-
         this.angle +=
-            mouseDelta;
+            input.consumeMouseDelta();
 
 
         this.normalizeAngle();
     }
 
-
-    // ========================================
-    // MOVEMENT
-    // ========================================
 
     move(
         forward,
@@ -155,8 +124,6 @@ export class Player {
             return;
         }
 
-
-        // Normalize diagonal movement.
 
         const magnitude =
             Math.sqrt(
@@ -175,12 +142,10 @@ export class Player {
         }
 
 
-        const distance =
+        const speed =
             this.moveSpeed *
             deltaTime;
 
-
-        // Direction vectors.
 
         const forwardX =
             Math.cos(this.angle);
@@ -196,22 +161,18 @@ export class Player {
             Math.cos(this.angle);
 
 
-        // Calculate movement.
-
         const dx =
             (
                 forwardX * forward +
                 rightX * strafe
-            ) *
-            distance;
+            ) * speed;
 
 
         const dy =
             (
                 forwardY * forward +
                 rightY * strafe
-            ) *
-            distance;
+            ) * speed;
 
 
         this.tryMove(
@@ -220,10 +181,6 @@ export class Player {
         );
     }
 
-
-    // ========================================
-    // COLLISION-AWARE MOVEMENT
-    // ========================================
 
     tryMove(
         dx,
@@ -238,8 +195,6 @@ export class Player {
             this.y + dy;
 
 
-        // X axis
-
         if (
             !this.collides(
                 newX,
@@ -250,8 +205,6 @@ export class Player {
             this.x = newX;
         }
 
-
-        // Y axis
 
         if (
             !this.collides(
@@ -265,10 +218,6 @@ export class Player {
     }
 
 
-    // ========================================
-    // COLLISION
-    // ========================================
-
     collides(
         x,
         y
@@ -279,6 +228,7 @@ export class Player {
 
 
         return (
+
             isWall(
                 x + r,
                 y
@@ -298,13 +248,10 @@ export class Player {
                 x,
                 y - r
             )
+
         );
     }
 
-
-    // ========================================
-    // ROTATION
-    // ========================================
 
     rotate(
         direction,
@@ -321,10 +268,6 @@ export class Player {
     }
 
 
-    // ========================================
-    // NORMALIZE ANGLE
-    // ========================================
-
     normalizeAngle() {
 
         const twoPi =
@@ -332,14 +275,16 @@ export class Player {
 
 
         this.angle =
-            this.angle % twoPi;
+            this.angle %
+            twoPi;
 
 
         if (
             this.angle < 0
         ) {
 
-            this.angle += twoPi;
+            this.angle +=
+                twoPi;
         }
     }
 }

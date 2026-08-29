@@ -50,6 +50,12 @@ const status =
     );
 
 
+const timeDisplay =
+    document.getElementById(
+        "time"
+    );
+
+
 // ============================================
 // ENGINE
 // ============================================
@@ -84,7 +90,7 @@ const entities =
 
 
 // ============================================
-// GAME STATE
+// STATE
 // ============================================
 
 let lastTime =
@@ -134,7 +140,7 @@ function render() {
 
 
 // ============================================
-// FPS
+// HUD
 // ============================================
 
 function updateHUD(
@@ -165,12 +171,18 @@ function updateHUD(
             `FPS ${fps.toFixed(0)} | ` +
             `X ${player.x.toFixed(1)} | ` +
             `Y ${player.y.toFixed(1)}`;
+
+
+        timeDisplay.textContent =
+            renderer.night
+                ? "NIGHT"
+                : "DAY";
     }
 }
 
 
 // ============================================
-// GAME LOOP
+// LOOP
 // ============================================
 
 function gameLoop(
@@ -216,13 +228,40 @@ function gameLoop(
 // ============================================
 
 console.log(
-    "ASCII City Version 2"
+    "================================"
 );
 
 console.log(
-    "Engine initialized."
+    "ASCII CITY — VERSION 3"
 );
 
+console.log(
+    "================================"
+);
+
+console.log(
+    "Raycasting: ONLINE"
+);
+
+console.log(
+    "Depth Buffer: ONLINE"
+);
+
+console.log(
+    "Dynamic Entities: ONLINE"
+);
+
+console.log(
+    "Dynamic Lighting: ONLINE"
+);
+
+console.log(
+    "Day/Night Cycle: ONLINE"
+);
+
+console.log(
+    "ASCII CITY MAIN.JS STARTED"
+);
 
 requestAnimationFrame(
     gameLoop

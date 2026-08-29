@@ -6,12 +6,14 @@ import {
     isWall,
     treeSpawns,
     carSpawns,
-    pedestrianSpawns
+    pedestrianSpawns,
+    streetLights,
+    trafficLights
 } from "./world.js";
 
 
 // ============================================
-// BASE ENTITY
+// BASE
 // ============================================
 
 class Entity {
@@ -30,8 +32,6 @@ class Entity {
         this.width = 0.5;
 
         this.type = "entity";
-
-        this.character = "?";
     }
 
 
@@ -40,6 +40,7 @@ class Entity {
         const dx =
             this.x -
             player.x;
+
 
         const dy =
             this.y -
@@ -101,11 +102,13 @@ export class Car
 
         this.height = 0.65;
 
-        this.width = 1.0;
+        this.width = 1;
     }
 
 
-    update(deltaTime) {
+    update(
+        deltaTime
+    ) {
 
         const dx =
             Math.cos(this.angle) *
@@ -172,18 +175,14 @@ export class Pedestrian
         this.speed =
             speed;
 
-        this.height =
-            1.7;
-
-        this.width =
-            0.25;
-
         this.timer =
             Math.random() * 3;
     }
 
 
-    update(deltaTime) {
+    update(
+        deltaTime
+    ) {
 
         this.timer -=
             deltaTime;
@@ -248,7 +247,66 @@ export class Pedestrian
 
 
 // ============================================
-// CREATE ENTITIES
+// STREET LIGHT
+// ============================================
+
+export class StreetLight
+    extends Entity {
+
+    constructor(
+        x,
+        y
+    ) {
+
+        super(x, y);
+
+        this.type =
+            "streetLight";
+
+        this.height =
+            3.0;
+
+        this.width =
+            0.25;
+
+        this.radius =
+            4.5;
+    }
+}
+
+
+// ============================================
+// TRAFFIC LIGHT
+// ============================================
+
+export class TrafficLight
+    extends Entity {
+
+    constructor(
+        x,
+        y,
+        state
+    ) {
+
+        super(x, y);
+
+        this.type =
+            "trafficLight";
+
+        this.state =
+            state;
+
+        this.height =
+            2.5;
+
+        this.width =
+            0.3;
+    }
+}
+
+
+// ============================================
+// CREATE
 // ============================================
 
 export function createEntities() {
@@ -287,10 +345,39 @@ export function createEntities() {
         );
 
 
+    const lights =
+        streetLights.map(
+            point =>
+                new StreetLight(
+                    point.x,
+                    point.y
+                )
+        );
+
+
+    const traffic =
+        trafficLights.map(
+            point =>
+                new TrafficLight(
+                    point.x,
+                    point.y,
+                    point.state
+                )
+        );
+
+
     return {
+
         trees,
+
         cars,
-        pedestrians
+
+        pedestrians,
+
+        lights,
+
+        traffic
+
     };
 }
 
