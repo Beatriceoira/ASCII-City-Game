@@ -1,616 +1,78 @@
-
 // ========================================
 // ASCII CITY — PLAYER.JS
-// VERSION 4
+// VERSION 5
 // ========================================
 
+import { isWall } from "./world.js";
+
 export class Player {
-
-    // ========================================
-    // CONSTRUCTOR
-    // ========================================
-
-    constructor(
-        x = 12.5,
-        y = 12.5,
-        angle = 0
-    ) {
-
-        // ----------------------------------------
-        // POSITION
-        // ----------------------------------------
-
-        this.x = x;
-        this.y = y;
-
-        // Direction in radians
-        this.angle = angle;
-
-
-        // ----------------------------------------
-        // MOVEMENT
-        // ----------------------------------------
-
-        this.moveSpeed = 4.0;
-
-        this.rotationSpeed = 2.5;
-
-        this.strafeSpeed = 3.0;
-
-
-        // ----------------------------------------
-        // SPRINT
-        // ----------------------------------------
-
-        this.sprintMultiplier = 1.8;
-
-
-        // ----------------------------------------
-        // COLLISION
-        // ----------------------------------------
-
-        this.radius = 0.20;
-
-
-        // ----------------------------------------
-        // CAMERA
-        // ----------------------------------------
-
-        this.height = 0.5;
-
-        this.pitch = 0;
-
-
-        // ----------------------------------------
-        // WORLD
-        // ----------------------------------------
-
-        // Version 4 obtains the city through
-        // world.js rather than passing a World
-        // object into the constructor.
-        this.world = null;
+    constructor(x=10.5,y=5.5,angle=0) {
+        this.x=x; this.y=y; this.angle=angle;
+        this.moveSpeed=4.0;
+        this.sprintMultiplier=1.8;
+        this.rotationSpeed=2.5;
+        this.radius=0.22;
+        this.height=0.5;
+        this.pitch=0;
+        this.world=null;
     }
 
+    update(deltaTime,input) {
+        if (!input || typeof input.isDown!=="function") return;
+        deltaTime=Math.min(deltaTime,0.1);
 
-    // ========================================
-    // UPDATE
-    // ========================================
-
-    update(
-        deltaTime,
-        input
-    ) {
-
-        // ----------------------------------------
-        // SAFETY
-        // ----------------------------------------
-
-        if (
-            !input ||
-            typeof input.isDown !== "function"
-        ) {
-            return;
+        if (typeof input.getMouseDeltaX==="function") {
+            this.angle += input.getMouseDeltaX()*0.0025;
         }
 
-
-        // Prevent unusually large movement
-        // after the browser loses focus.
-        deltaTime =
-            Math.min(
-                deltaTime,
-                0.1
-            );
-
-    // ========================================
-        // MOUSE LOOK
-        // ========================================
-
-        if (
-            typeof input.getMouseDeltaX === "function"
-        ) {
-
-            const mouseX =
-                input.getMouseDeltaX();
-
-            this.angle +=
-                mouseX *
-                0.0025;
-        }
-
-
-        // ----------------------------------------
-        // ROTATION
-        // ----------------------------------------
-
-        let rotation = 0;
-
-
-        // A / LEFT
-        if (
-            input.isDown("KeyA") ||
-            input.isDown("ArrowLeft")
-        ) {
-
-            rotation -=
-                this.rotationSpeed *
-                deltaTime;
-        }
-
-
-        // D / RIGHT
-        if (
-            input.isDown("KeyD") ||
-            input.isDown("ArrowRight")
-        ) {
-
-            rotation +=
-                this.rotationSpeed *
-                deltaTime;
-        }
-
-
+        let rotation=0;
+        if(input.isDown("KeyA")||input.isDown("ArrowLeft")) rotation-=this.rotationSpeed*deltaTime;
+        if(input.isDown("KeyD")||input.isDown("ArrowRight")) rotation+=this.rotationSpeed*deltaTime;
         this.angle += rotation;
+        this.angle %= Math.PI*2;
+        if(this.angle<0)this.angle+=Math.PI*2;
 
+        let forward=0,strafe=0;
+        if(input.isDown("KeyW")||input.isDown("ArrowUp"))forward++;
+        if(input.isDown("KeyS")||input.isDown("ArrowDown"))forward--;
+        if(input.isDown("KeyQ"))strafe--;
+        if(input.isDown("KeyE"))strafe++;
 
-        // ----------------------------------------
-        // NORMALIZE ANGLE
-        // ----------------------------------------
+        if(!forward&&!strafe)return;
 
-        this.angle =
-            this.angle %
-            (Math.PI * 2);
+        let speed=this.moveSpeed;
+        if(input.isDown("ShiftLeft")||input.isDown("ShiftRight"))speed*=this.sprintMultiplier;
 
-
-        if (
-            this.angle < 0
-        ) {
-
-            this.angle +=
-                Math.PI * 2;
-        }
-
-
-        // ----------------------------------------
-        // MOVEMENT INPUT
-        // ----------------------------------------
-
-        let forward = 0;
-
-        let strafe = 0;
-
-
-        // W / UP
-        if (
-            input.isDown("KeyW") ||
-            input.isDown("ArrowUp")
-        ) {
-
-            forward += 1;
-        }
-
-
-        // S / DOWN
-        if (
-            input.isDown("KeyS") ||
-            input.isDown("ArrowDown")
-        ) {
-
-            forward -= 1;
-        }
-
-
-        // Q = STRAFE LEFT
-        if (
-            input.isDown("KeyQ")
-        ) {
-
-            strafe -= 1;
-        }
-
-
-        // E = STRAFE RIGHT
-        if (
-            input.isDown("KeyE")
-        ) {
-
-            strafe += 1;
-        }
-
-
-        // ----------------------------------------
-        // NO MOVEMENT
-        // ----------------------------------------
-
-        if (
-            forward === 0 &&
-            strafe === 0
-        ) {
-
-            return;
-        }
-
-
-        // ----------------------------------------
-        // SPEED
-        // ----------------------------------------
-
-        let speed =
-            this.moveSpeed;
-
-
-        // Sprint
-        if (
-            input.isDown("ShiftLeft") ||
-            input.isDown("ShiftRight")
-        ) {
-
-            speed *=
-                this.sprintMultiplier;
-        }
-
-
-        // ----------------------------------------
-        // DIRECTION VECTORS
-        // ----------------------------------------
-
-        const forwardX =
-            Math.cos(this.angle);
-
-        const forwardY =
-            Math.sin(this.angle);
-
-
-        const rightX =
-            -Math.sin(this.angle);
-
-        const rightY =
-            Math.cos(this.angle);
-
-
-        // ----------------------------------------
-        // MOVEMENT VECTOR
-        // ----------------------------------------
-
-        let dx =
-            (
-                forwardX * forward
-            ) +
-            (
-                rightX * strafe
-            );
-
-
-        let dy =
-            (
-                forwardY * forward
-            ) +
-            (
-                rightY * strafe
-            );
-
-
-        // ----------------------------------------
-        // NORMALIZE
-        // ----------------------------------------
-
-        const length =
-            Math.sqrt(
-                dx * dx +
-                dy * dy
-            );
-
-
-        if (
-            length <= 0
-        ) {
-
-            return;
-        }
-
-
-        dx /=
-            length;
-
-        dy /=
-            length;
-
-
-        // ----------------------------------------
-        // APPLY SPEED
-        // ----------------------------------------
-
-        dx *=
-            speed *
-            deltaTime;
-
-        dy *=
-            speed *
-            deltaTime;
-
-
-        // ----------------------------------------
-        // MOVE
-        // ----------------------------------------
-
-        this.move(
-            dx,
-            dy
-        );
+        const fx=Math.cos(this.angle),fy=Math.sin(this.angle);
+        const rx=-Math.sin(this.angle),ry=Math.cos(this.angle);
+        let dx=fx*forward+rx*strafe;
+        let dy=fy*forward+ry*strafe;
+        const len=Math.hypot(dx,dy);
+        if(!len)return;
+        dx=dx/len*speed*deltaTime;
+        dy=dy/len*speed*deltaTime;
+        this.move(dx,dy);
     }
 
-
-    // ========================================
-    // MOVE
-    // ========================================
-
-    move(
-        dx,
-        dy
-    ) {
-
-        const newX =
-            this.x + dx;
-
-        const newY =
-            this.y + dy;
-
-
-        // ----------------------------------------
-        // X AXIS
-        // ----------------------------------------
-
-        if (
-            !this.collides(
-                newX,
-                this.y
-            )
-        ) {
-
-            this.x =
-                newX;
-        }
-
-
-        // ----------------------------------------
-        // Y AXIS
-        // ----------------------------------------
-
-        if (
-            !this.collides(
-                this.x,
-                newY
-            )
-        ) {
-
-            this.y =
-                newY;
-        }
+    move(dx,dy) {
+        const nx=this.x+dx,ny=this.y+dy;
+        if(!this.collides(nx,this.y))this.x=nx;
+        if(!this.collides(this.x,ny))this.y=ny;
     }
 
-
-    // ========================================
-    // COLLISION
-    // ========================================
-
-    collides(
-        x,
-        y
-    ) {
-
-        // ----------------------------------------
-        // WORLD NOT CONNECTED
-        // ----------------------------------------
-
-        if (
-            !this.world
-        ) {
-
-            return false;
-        }
-
-
-        // ----------------------------------------
-        // isSolid()
-        // ----------------------------------------
-
-        if (
-            typeof this.world.isSolid ===
-            "function"
-        ) {
-
-            return (
-                this.world.isSolid(
-                    x - this.radius,
-                    y - this.radius
-                ) ||
-
-                this.world.isSolid(
-                    x + this.radius,
-                    y - this.radius
-                ) ||
-
-                this.world.isSolid(
-                    x - this.radius,
-                    y + this.radius
-                ) ||
-
-                this.world.isSolid(
-                    x + this.radius,
-                    y + this.radius
-                )
-            );
-        }
-
-
-        // ----------------------------------------
-        // isBlocked()
-        // ----------------------------------------
-
-        if (
-            typeof this.world.isBlocked ===
-            "function"
-        ) {
-
-            return (
-                this.world.isBlocked(
-                    x - this.radius,
-                    y - this.radius
-                ) ||
-
-                this.world.isBlocked(
-                    x + this.radius,
-                    y - this.radius
-                ) ||
-
-                this.world.isBlocked(
-                    x - this.radius,
-                    y + this.radius
-                ) ||
-
-                this.world.isBlocked(
-                    x + this.radius,
-                    y + this.radius
-                )
-            );
-        }
-
-
-        // ----------------------------------------
-        // NO COLLISION API
-        // ----------------------------------------
-
-        return false;
+    collides(x,y) {
+        const r=this.radius;
+        return isWall(x-r,y-r)||isWall(x+r,y-r)||isWall(x-r,y+r)||isWall(x+r,y+r);
     }
 
+    setWorld(world){this.world=world;}
 
-    // ========================================
-    // SET WORLD
-    // ========================================
-
-    setWorld(
-        world
-    ) {
-
-        this.world =
-            world;
+    reset(x=10.5,y=5.5,angle=0) {
+        this.x=x;this.y=y;this.angle=angle;this.pitch=0;
     }
 
-
-    // ========================================
-    // RESET
-    // ========================================
-
-    reset(
-        x = 12.5,
-        y = 12.5,
-        angle = 0
-    ) {
-
-        this.x =
-            x;
-
-        this.y =
-            y;
-
-        this.angle =
-            angle;
-
-
-        // Normalize angle
-        this.angle =
-            this.angle %
-            (Math.PI * 2);
-
-
-        if (
-            this.angle < 0
-        ) {
-
-            this.angle +=
-                Math.PI * 2;
-        }
-
-
-        // Reset camera
-        this.pitch = 0;
-    }
-
-
-    // ========================================
-    // GET POSITION
-    // ========================================
-
-    getPosition() {
-
-        return {
-
-            x: this.x,
-
-            y: this.y,
-
-            angle: this.angle
-        };
-    }
-
-
-    // ========================================
-    // GET DIRECTION
-    // ========================================
-
-    getDirection() {
-
-        return {
-
-            x: Math.cos(
-                this.angle
-            ),
-
-            y: Math.sin(
-                this.angle
-            )
-        };
-    }
-
-
-    // ========================================
-    // GET FORWARD VECTOR
-    // ========================================
-
-    getForwardVector() {
-
-        return {
-
-            x:
-                Math.cos(
-                    this.angle
-                ),
-
-            y:
-                Math.sin(
-                    this.angle
-                )
-        };
-    }
-
-
-    // ========================================
-    // GET RIGHT VECTOR
-    // ========================================
-
-    getRightVector() {
-
-        return {
-
-            x:
-                -Math.sin(
-                    this.angle
-                ),
-
-            y:
-                Math.cos(
-                    this.angle
-                )
-        };
-    }
+    getPosition(){return {x:this.x,y:this.y,angle:this.angle};}
+    getDirection(){return {x:Math.cos(this.angle),y:Math.sin(this.angle)};}
+    getForwardVector(){return this.getDirection();}
+    getRightVector(){return {x:-Math.sin(this.angle),y:Math.cos(this.angle)};}
 }
-

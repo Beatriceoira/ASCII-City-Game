@@ -1,1084 +1,317 @@
 // ============================================
-// WORLD.JS — VERSION 4
-// PROCEDURAL CITY GENERATOR
+// WORLD.JS — VERSION 5
+// Procedural city + roads + crosswalks + destinations
 // ============================================
-
 
 export const TILE_SIZE = 1;
-
 export const WORLD_WIDTH = 80;
-
 export const WORLD_HEIGHT = 80;
 
-
-// ============================================
-// TILE TYPES
-// ============================================
-
 export const TILE = {
-
     ROAD: ".",
-
     SIDEWALK: "s",
-
     BUILDING: "#",
-
-    PARK: "p"
-
+    PARK: "p",
+    CROSSWALK: "c"
 };
 
-
-// ============================================
-// SEEDED RANDOM
-// ============================================
-
 export class Random {
-
-    constructor(seed = 12345) {
-
-        this.seed =
-            seed >>> 0;
-    }
-
-
+    constructor(seed = 12345) { this.seed = seed >>> 0; }
     next() {
-
-        this.seed =
-            (
-                this.seed *
-                1664525 +
-                1013904223
-            ) >>> 0;
-
-
-        return (
-            this.seed /
-            4294967296
-        );
+        this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+        return this.seed / 4294967296;
     }
-
-
-    range(
-        min,
-        max
-    ) {
-
-        return (
-            min +
-            this.next() *
-            (
-                max - min
-            )
-        );
-    }
-
-
-    int(
-        min,
-        max
-    ) {
-
-        return Math.floor(
-            this.range(
-                min,
-                max + 1
-            )
-        );
-    }
-
-
-    chance(
-        probability
-    ) {
-
-        return (
-            this.next() <
-            probability
-        );
-    }
-
-
-    pick(
-        array
-    ) {
-
-        return array[
-            this.int(
-                0,
-                array.length - 1
-            )
-        ];
-    }
+    range(min, max) { return min + this.next() * (max - min); }
+    int(min, max) { return Math.floor(this.range(min, max + 1)); }
+    chance(p) { return this.next() < p; }
+    pick(a) { return a[this.int(0, a.length - 1)]; }
 }
-
-
-// ============================================
-// CITY DATA
-// ============================================
 
 export let WORLD_MAP = [];
-
 export let buildings = [];
-
 export let treeSpawns = [];
-
 export let carSpawns = [];
-
 export let pedestrianSpawns = [];
-
 export let streetLights = [];
-
 export let trafficLights = [];
-
 export let parks = [];
+export let crosswalks = [];
+export let destinations = [];
+export let roadTiles = [];
+export let sidewalkTiles = [];
+export let currentSeed = 20260324;
 
-
-// ============================================
-// CITY SEED
-// ============================================
-
-export let currentSeed =
-    20260324;
-
-
-// ============================================
-// EMPTY MAP
-// ============================================
+const ROAD_COORDS = [10,20,30,40,50,60,70];
 
 function createEmptyMap() {
-
-    WORLD_MAP = [];
-
-
-    for (
-        let y = 0;
-        y < WORLD_HEIGHT;
-        y++
-    ) {
-
-        WORLD_MAP[y] =
-            new Array(
-                WORLD_WIDTH
-            ).fill(
-                TILE.BUILDING
-            );
-    }
-}
-
-
-// ============================================
-// SET TILE
-// ============================================
-
-function setTile(
-    x,
-    y,
-    tile
-) {
-
-    if (
-        x < 0 ||
-        x >= WORLD_WIDTH ||
-        y < 0 ||
-        y >= WORLD_HEIGHT
-    ) {
-
-        return;
-    }
-
-
-    WORLD_MAP[y][x] =
-        tile;
-}
-
-
-// ============================================
-// GENERATE ROADS
-// ============================================
-
-function generateRoads(
-    random
-) {
-
-    const verticalRoads = [
-        10,
-        20,
-        30,
-        40,
-        50,
-        60,
-        70
-    ];
-
-
-    const horizontalRoads = [
-        10,
-        20,
-        30,
-        40,
-        50,
-        60,
-        70
-    ];
-
-
-    for (
-        const x
-        of verticalRoads
-    ) {
-
-        for (
-            let y = 0;
-            y < WORLD_HEIGHT;
-            y++
-        ) {
-
-            setTile(
-                x,
-                y,
-                TILE.ROAD
-            );
-
-
-            if (
-                x > 0
-            ) {
-
-                setTile(
-                    x - 1,
-                    y,
-                    TILE.SIDEWALK
-                );
-            }
-
-
-            if (
-                x <
-                WORLD_WIDTH - 1
-            ) {
-
-                setTile(
-                    x + 1,
-                    y,
-                    TILE.SIDEWALK
-                );
-            }
-        }
-    }
-
-
-    for (
-        const y
-        of horizontalRoads
-    ) {
-
-        for (
-            let x = 0;
-            x < WORLD_WIDTH;
-            x++
-        ) {
-
-            setTile(
-                x,
-                y,
-                TILE.ROAD
-            );
-
-
-            if (
-                y > 0
-            ) {
-
-                setTile(
-                    x,
-                    y - 1,
-                    TILE.SIDEWALK
-                );
-            }
-
-
-            if (
-                y <
-                WORLD_HEIGHT - 1
-            ) {
-
-                setTile(
-                    x,
-                    y + 1,
-                    TILE.SIDEWALK
-                );
-            }
-        }
-    }
-}
-
-
-// ============================================
-// GENERATE BLOCKS
-// ============================================
-
-function generateBlocks(
-    random
-) {
-
-    buildings = [];
-
-
-    const blockSize = 10;
-
-    const roadWidth = 3;
-
-
-    for (
-        let blockY = 0;
-        blockY < 7;
-        blockY++
-    ) {
-
-        for (
-            let blockX = 0;
-            blockX < 7;
-            blockX++
-        ) {
-
-            const originX =
-                blockX *
-                blockSize;
-
-
-            const originY =
-                blockY *
-                blockSize;
-
-
-            if (
-                random.chance(
-                    0.12
-                )
-            ) {
-
-                generatePark(
-                    originX,
-                    originY,
-                    random
-                );
-
-                continue;
-            }
-
-
-            const margin = 2;
-
-
-            const width =
-                random.int(
-                    4,
-                    7
-                );
-
-
-            const depth =
-                random.int(
-                    4,
-                    7
-                );
-
-
-            const x =
-                originX +
-                margin;
-
-
-            const y =
-                originY +
-                margin;
-
-
-            const height =
-                random.int(
-                    4,
-                    18
-                );
-
-
-            const type =
-                random.pick([
-                    "residential",
-                    "office",
-                    "commercial",
-                    "tower"
-                ]);
-
-
-            const building = {
-
-                id:
-                    `B${buildings.length
-                        .toString()
-                        .padStart(
-                            3,
-                            "0"
-                        )}`,
-
-                x,
-
-                y,
-
-                width,
-
-                depth,
-
-                height,
-
-                type,
-
-                windows:
-                    true,
-
-                windowRows:
-                    Math.max(
-                        2,
-                        Math.floor(
-                            height *
-                            0.65
-                        )
-                    ),
-
-                windowColumns:
-                    Math.max(
-                        2,
-                        width - 1
-                    )
-            };
-
-
-            buildings.push(
-                building
-            );
-
-
-            // Building footprint.
-
-            for (
-                let yy = y;
-                yy <
-                y + depth;
-                yy++
-            ) {
-
-                for (
-                    let xx = x;
-                    xx <
-                    x + width;
-                    xx++
-                ) {
-
-                    setTile(
-                        xx,
-                        yy,
-                        TILE.BUILDING
-                    );
-                }
-            }
-        }
-    }
-}
-
-
-// ============================================
-// PARK
-// ============================================
-
-function generatePark(
-    originX,
-    originY,
-    random
-) {
-
-    const park = {
-
-        x:
-            originX + 2,
-
-        y:
-            originY + 2,
-
-        width: 6,
-
-        depth: 6
-
-    };
-
-
-    parks.push(
-        park
+    WORLD_MAP = Array.from(
+        { length: WORLD_HEIGHT },
+        () => new Array(WORLD_WIDTH).fill(TILE.BUILDING)
     );
+}
 
+function setTile(x, y, tile) {
+    if (x < 0 || x >= WORLD_WIDTH || y < 0 || y >= WORLD_HEIGHT) return;
+    WORLD_MAP[y][x] = tile;
+}
 
-    for (
-        let y = park.y;
-        y <
-        park.y +
-        park.depth;
-        y++
-    ) {
-
-        for (
-            let x = park.x;
-            x <
-            park.x +
-            park.width;
-            x++
-        ) {
-
-            setTile(
-                x,
-                y,
-                TILE.PARK
-            );
-
-
-            if (
-                random.chance(
-                    0.2
-                )
-            ) {
-
-                treeSpawns.push({
-
-                    x:
-                        x + 0.5,
-
-                    y:
-                        y + 0.5
-
-                });
-            }
+function generateRoads() {
+    for (const x of ROAD_COORDS) {
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+            setTile(x, y, TILE.ROAD);
+            if (x > 0 && WORLD_MAP[y][x - 1] === TILE.BUILDING) setTile(x - 1, y, TILE.SIDEWALK);
+            if (x < WORLD_WIDTH - 1 && WORLD_MAP[y][x + 1] === TILE.BUILDING) setTile(x + 1, y, TILE.SIDEWALK);
+        }
+    }
+    for (const y of ROAD_COORDS) {
+        for (let x = 0; x < WORLD_WIDTH; x++) {
+            setTile(x, y, TILE.ROAD);
+            if (y > 0 && WORLD_MAP[y - 1][x] === TILE.BUILDING) setTile(x, y - 1, TILE.SIDEWALK);
+            if (y < WORLD_HEIGHT - 1 && WORLD_MAP[y + 1][x] === TILE.BUILDING) setTile(x, y + 1, TILE.SIDEWALK);
+        }
+    }
+    roadTiles = [];
+    sidewalkTiles = [];
+    for (let y = 0; y < WORLD_HEIGHT; y++) {
+        for (let x = 0; x < WORLD_WIDTH; x++) {
+            if (WORLD_MAP[y][x] === TILE.ROAD) roadTiles.push({x:x+0.5,y:y+0.5});
+            if (WORLD_MAP[y][x] === TILE.SIDEWALK) sidewalkTiles.push({x:x+0.5,y:y+0.5});
         }
     }
 }
 
-
-// ============================================
-// STREET LIGHTS
-// ============================================
-
-function generateStreetLights() {
-
-    streetLights = [];
-
-
-    for (
-        let x = 5;
-        x < WORLD_WIDTH;
-        x += 10
-    ) {
-
-        for (
-            let y = 5;
-            y < WORLD_HEIGHT;
-            y += 10
-        ) {
-
-            streetLights.push({
-
-                x:
-                    x + 0.5,
-
-                y:
-                    y + 0.5
-
+function generateCrosswalks() {
+    crosswalks = [];
+    for (const x of ROAD_COORDS) {
+        for (const y of ROAD_COORDS) {
+            // A crosswalk is represented by its intersection center and
+            // four pedestrian approach points.
+            crosswalks.push({
+                id: `CW-${x}-${y}`,
+                x: x + 0.5,
+                y: y + 0.5,
+                width: 3,
+                signal: "WALK"
             });
         }
     }
 }
 
+function generateBlocks(random) {
+    buildings = [];
+    parks = [];
+    destinations = [];
+    treeSpawns = [];
 
-// ============================================
-// TRAFFIC LIGHTS
-// ============================================
+    for (let blockY = 0; blockY < 7; blockY++) {
+        for (let blockX = 0; blockX < 7; blockX++) {
+            const originX = blockX * 10;
+            const originY = blockY * 10;
 
-function generateTrafficLights(
-    random
-) {
+            if (random.chance(0.14)) {
+                const park = { x: originX + 2, y: originY + 2, width: 6, depth: 6 };
+                parks.push(park);
+                destinations.push({
+                    id: `PARK-${parks.length}`,
+                    type: "park",
+                    x: park.x + park.width / 2,
+                    y: park.y + park.depth / 2
+                });
+                for (let y = park.y; y < park.y + park.depth; y++) {
+                    for (let x = park.x; x < park.x + park.width; x++) {
+                        setTile(x, y, TILE.PARK);
+                        if (random.chance(0.18)) treeSpawns.push({x:x+0.5,y:y+0.5});
+                    }
+                }
+                continue;
+            }
 
+            const width = random.int(4, 7);
+            const depth = random.int(4, 7);
+            const x = originX + 2;
+            const y = originY + 2;
+            const height = random.int(4, 18);
+            const type = random.pick(["residential","office","commercial","restaurant","school","tower"]);
+
+            const building = {
+                id: `B${String(buildings.length).padStart(3,"0")}`,
+                x, y, width, depth, height, type,
+                windows: true,
+                windowRows: Math.max(2, Math.floor(height * 0.65)),
+                windowColumns: Math.max(2, width - 1)
+            };
+            buildings.push(building);
+
+            const destinationType =
+                type === "residential" ? "home" :
+                type === "office" ? "work" :
+                type === "school" ? "school" :
+                type === "restaurant" ? "restaurant" :
+                "shop";
+
+            destinations.push({
+                id: building.id,
+                type: destinationType,
+                x: x + width / 2,
+                y: y + depth / 2,
+                buildingId: building.id
+            });
+
+            for (let yy = y; yy < y + depth; yy++) {
+                for (let xx = x; xx < x + width; xx++) setTile(xx, yy, TILE.BUILDING);
+            }
+        }
+    }
+}
+
+function generateStreetLights() {
+    streetLights = [];
+    for (let x = 5; x < WORLD_WIDTH; x += 10) {
+        for (let y = 5; y < WORLD_HEIGHT; y += 10) {
+            streetLights.push({x:x+0.5,y:y+0.5});
+        }
+    }
+}
+
+function generateTrafficLights(random) {
     trafficLights = [];
+    for (const x of ROAD_COORDS) {
+        for (const y of ROAD_COORDS) {
+            trafficLights.push({
+                id: `TL-${x}-${y}`,
+                x:x+0.5, y:y+0.5,
+                state: random.chance(0.5) ? "green" : "red",
+                greenAxis: random.chance(0.5) ? "horizontal" : "vertical",
+                timer: random.range(0, 8)
+            });
+        }
+    }
+}
 
-
-    const intersections = [
-
-        [10, 10],
-        [20, 20],
-        [30, 30],
-        [40, 40],
-        [50, 50],
-        [60, 60],
-        [70, 70],
-
-        [20, 40],
-        [40, 20],
-        [60, 30]
-
-    ];
-
-
-    for (
-        const [
-            x,
-            y
-        ]
-        of intersections
-    ) {
-
-        trafficLights.push({
-
-            x:
-                x + 1.5,
-
-            y:
-                y + 1.5,
-
-            state:
-                random.pick([
-                    "red",
-                    "yellow",
-                    "green"
-                ])
-
+function generateInitialCars(random) {
+    carSpawns = [];
+    for (let i = 0; i < 18; i++) {
+        const p = random.pick(roadTiles);
+        const horizontal = ROAD_COORDS.includes(Math.floor(p.y));
+        carSpawns.push({
+            x:p.x, y:p.y,
+            angle: horizontal ? (random.chance(0.5) ? 0 : Math.PI) : (random.chance(0.5) ? Math.PI/2 : -Math.PI/2),
+            speed: random.range(1.2, 2.6)
         });
     }
 }
 
-
-// ============================================
-// CARS
-// ============================================
-
-function generateCars(
-    random
-) {
-
-    carSpawns = [];
-
-
-    const roads = [
-
-        ...[10,20,30,40,50,60,70]
-            .map(y => ({
-                axis: "horizontal",
-                value: y
-            })),
-
-        ...[10,20,30,40,50,60,70]
-            .map(x => ({
-                axis: "vertical",
-                value: x
-            }))
-
-    ];
-
-
-    for (
-        let i = 0;
-        i < 24;
-        i++
-    ) {
-
-        const road =
-            random.pick(
-                roads
-            );
-
-
-        if (
-            road.axis ===
-            "horizontal"
-        ) {
-
-            carSpawns.push({
-
-                x:
-                    random.range(
-                        2,
-                        WORLD_WIDTH - 2
-                    ),
-
-                y:
-                    road.value +
-                    0.5,
-
-                angle:
-                    random.chance(0.5)
-                        ? 0
-                        : Math.PI,
-
-                speed:
-                    random.range(
-                        0.4,
-                        1.2
-                    )
-
-            });
-
-        } else {
-
-            carSpawns.push({
-
-                x:
-                    road.value +
-                    0.5,
-
-                y:
-                    random.range(
-                        2,
-                        WORLD_HEIGHT - 2
-                    ),
-
-                angle:
-                    random.chance(0.5)
-                        ? Math.PI / 2
-                        : -Math.PI / 2,
-
-                speed:
-                    random.range(
-                        0.4,
-                        1.2
-                    )
-
-            });
-        }
-    }
-}
-
-
-// ============================================
-// PEDESTRIANS
-// ============================================
-
-function generatePedestrians(
-    random
-) {
-
+function generateInitialPedestrians(random) {
     pedestrianSpawns = [];
+    for (let i = 0; i < 24; i++) {
+        const p = random.pick(sidewalkTiles);
+        pedestrianSpawns.push({
+            x:p.x, y:p.y,
+            angle: random.range(0, Math.PI*2),
+            speed: random.range(0.7, 1.2)
+        });
+    }
+}
 
-
-    for (
-        let i = 0;
-        i < 30;
-        i++
-    ) {
-
-        const x =
-            random.int(
-                2,
-                WORLD_WIDTH - 2
-            );
-
-
-        const y =
-            random.int(
-                2,
-                WORLD_HEIGHT - 2
-            );
-
-
-        if (
-            getTile(
-                x,
-                y
-            ) !== TILE.BUILDING
-        ) {
-
-            pedestrianSpawns.push({
-
-                x:
-                    x + 0.5,
-
-                y:
-                    y + 0.5,
-
-                angle:
-                    random.range(
-                        0,
-                        Math.PI * 2
-                    ),
-
-                speed:
-                    random.range(
-                        0.15,
-                        0.4
-                    )
-
-            });
+function generateTrees(random) {
+    for (let i = 0; i < 28; i++) {
+        const p = random.pick(sidewalkTiles);
+        if (!ROAD_COORDS.includes(Math.floor(p.x)) && !ROAD_COORDS.includes(Math.floor(p.y))) {
+            treeSpawns.push({x:p.x,y:p.y});
         }
     }
 }
 
+export function getTile(x, y) {
+    const mx = Math.floor(x), my = Math.floor(y);
+    if (mx < 0 || mx >= WORLD_WIDTH || my < 0 || my >= WORLD_HEIGHT) return TILE.BUILDING;
+    return WORLD_MAP[my][mx];
+}
 
-// ============================================
-// TREES
-// ============================================
+export function isWall(x, y) { return getTile(x,y) === TILE.BUILDING; }
+export function isSolid(x, y) { return isWall(x,y); }
+export function isRoad(x,y) {
+    const t = getTile(x,y);
+    return t === TILE.ROAD || t === TILE.CROSSWALK;
+}
+export function isWalkable(x,y) { return getTile(x,y) !== TILE.BUILDING; }
 
-function generateTrees(
-    random
-) {
-
-    for (
-        let i = 0;
-        i < 35;
-        i++
-    ) {
-
-        const x =
-            random.int(
-                1,
-                WORLD_WIDTH - 2
-            );
-
-
-        const y =
-            random.int(
-                1,
-                WORLD_HEIGHT - 2
-            );
-
-
-        const tile =
-            getTile(
-                x,
-                y
-            );
-
-
+export function getBuildingAt(mapX, mapY) {
+    for (const building of buildings) {
         if (
-            tile === TILE.SIDEWALK ||
-            tile === TILE.PARK
-        ) {
-
-            treeSpawns.push({
-
-                x:
-                    x + 0.5,
-
-                y:
-                    y + 0.5
-
-            });
-        }
+            mapX >= building.x && mapX < building.x + building.width &&
+            mapY >= building.y && mapY < building.y + building.depth
+        ) return building;
     }
-}
-
-
-// ============================================
-// TILE
-// ============================================
-
-export function getTile(
-    x,
-    y
-) {
-
-    const mapX =
-        Math.floor(x);
-
-
-    const mapY =
-        Math.floor(y);
-
-
-    if (
-        mapX < 0 ||
-        mapX >= WORLD_WIDTH ||
-        mapY < 0 ||
-        mapY >= WORLD_HEIGHT
-    ) {
-
-        return TILE.BUILDING;
-    }
-
-
-    return WORLD_MAP[mapY][mapX];
-}
-
-
-// ============================================
-// COLLISION
-// ============================================
-
-export function isWall(
-    x,
-    y
-) {
-
-    return (
-        getTile(
-            x,
-            y
-        ) === TILE.BUILDING
-    );
-}
-
-
-// ============================================
-// BUILDING LOOKUP
-// ============================================
-
-export function getBuildingAt(
-    mapX,
-    mapY
-) {
-
-    for (
-        const building
-        of buildings
-    ) {
-
-        if (
-
-            mapX >= building.x &&
-
-            mapX <
-                building.x +
-                building.width &&
-
-            mapY >= building.y &&
-
-            mapY <
-                building.y +
-                building.depth
-
-        ) {
-
-            return building;
-        }
-    }
-
-
     return null;
 }
 
+export function getTrafficLightAt(x,y) {
+    let best = null, bestD = Infinity;
+    for (const light of trafficLights) {
+        const d = Math.hypot(light.x-x, light.y-y);
+        if (d < bestD) { bestD=d; best=light; }
+    }
+    return bestD < 2.0 ? best : null;
+}
 
-// ============================================
-// GENERATE CITY
-// ============================================
+export function getNearestDestination(x,y, type=null) {
+    let best = null, bestD = Infinity;
+    for (const d of destinations) {
+        if (type && d.type !== type) continue;
+        const dist = Math.hypot(d.x-x,d.y-y);
+        if (dist < bestD) { bestD=dist; best=d; }
+    }
+    return best;
+}
 
-export function generateCity(
-    seed = currentSeed
-) {
+export function generateCity(seed=currentSeed) {
+    currentSeed = Number(seed) || 1;
+    const random = new Random(currentSeed);
 
-    currentSeed =
-        Number(seed) || 1;
-
-
-    const random =
-        new Random(
-            currentSeed
-        );
-
-
-    buildings = [];
-
-    treeSpawns = [];
-
-    carSpawns = [];
-
-    pedestrianSpawns = [];
-
-    streetLights = [];
-
-    trafficLights = [];
-
-    parks = [];
-
+    buildings=[]; treeSpawns=[]; carSpawns=[]; pedestrianSpawns=[];
+    streetLights=[]; trafficLights=[]; parks=[]; crosswalks=[];
+    destinations=[]; roadTiles=[]; sidewalkTiles=[];
 
     createEmptyMap();
-
-    generateRoads(
-        random
-    );
-
-    generateBlocks(
-        random
-    );
-
+    generateRoads();
+    generateCrosswalks();
+    generateBlocks(random);
     generateStreetLights();
-
-    generateTrafficLights(
-        random
-    );
-
-    generateTrees(
-        random
-    );
-
-    generateCars(
-        random
-    );
-
-    generatePedestrians(
-        random
-    );
-
+    generateTrafficLights(random);
+    generateInitialCars(random);
+    generateInitialPedestrians(random);
+    generateTrees(random);
 
     return {
-
-        seed:
-            currentSeed,
-
-        buildings,
-
-        treeSpawns,
-
-        carSpawns,
-
-        pedestrianSpawns,
-
-        streetLights,
-
-        trafficLights,
-
-        parks
-
+        seed:currentSeed, buildings, treeSpawns, carSpawns,
+        pedestrianSpawns, streetLights, trafficLights, parks,
+        crosswalks, destinations, roadTiles, sidewalkTiles
     };
 }
 
-
-// ============================================
-// RANDOM SEED
-// ============================================
-
 export function randomSeed() {
-
-    return Math.floor(
-        Math.random() *
-        999999999
-    );
+    return Math.floor(Math.random() * 999999999);
 }
-
-
-// ============================================
-// PLAYER SPAWN
-// ============================================
 
 export function getPlayerSpawn() {
 
+    if (roadTiles.length === 0) {
+        return {
+            x: 10.5,
+            y: 5.5,
+            angle: 0
+        };
+    }
+
+    // Prefer the first road tile.
+    const spawn = roadTiles[0];
+
     return {
-
-        x: 5.5,
-
-        y: 5.5,
-
-        angle:
-            Math.PI / 4
-
+        x: spawn.x,
+        y: spawn.y,
+        angle: 0
     };
 }
 
-
-// ============================================
-// INITIAL CITY
-// ============================================
-
-generateCity(
-    currentSeed
-);
+generateCity(currentSeed);

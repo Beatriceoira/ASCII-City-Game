@@ -1,78 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>ASCII City — Version 4</title>
-
-    <link
-        rel="stylesheet"
-        href="css/style.css"
-    >
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII City — Version 5</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
+<canvas id="gameCanvas"></canvas>
 
-    <canvas id="gameCanvas"></canvas>
-
-
-    <div id="hud">
-
-        <div class="title">
-            ASCII CITY
-        </div>
-
-        <div id="status">
-            Generating city...
-        </div>
-
-        <div id="time">
-            DAY
-        </div>
-
-        <div id="seed">
-            SEED: ------
-        </div>
-
-        <div class="controls">
-
-            W A S D — Move<br>
-            ← → — Turn<br>
-            Mouse — Look<br>
-            N — Day/Night<br>
-            R — Generate City<br>
-            ESC — Release Mouse
-
-        </div>
-
+<div id="hud">
+    <div class="title">ASCII CITY</div>
+    <div class="version">VERSION 5 — CITY SIMULATION</div>
+    <div id="status">Starting engine...</div>
+    <div id="time">08:00 DAY</div>
+    <div id="seed">SEED: ------</div>
+    <div id="population">POP 25,000 | ACTIVE 0</div>
+    <div id="traffic">TRAFFIC 0 | PEDS 0</div>
+    <div id="pause">RUNNING</div>
+    <div class="controls">
+        W A S D — Move / Turn<br>
+        Q E — Strafe<br>
+        Mouse — Look<br>
+        Shift — Sprint<br>
+        N — Day/Night<br>
+        R — Regenerate City<br>
+        P — Pause Simulation<br>
+        ESC — Release Mouse
     </div>
+</div>
 
-
-    <div id="crosshair">
-        +
-    </div>
-
-
-    <div id="minimap">
-
-        <canvas id="minimapCanvas"></canvas>
-
-    </div>
-
-
-    <script
-        type="module"
-        src="js/main.js"
-    ></script>
-
+<div id="crosshair">+</div>
+<div id="minimap"><canvas id="minimapCanvas"></canvas></div>
+<script type="module" src="js/main.js"></script>
 </body>
-
 </html>
