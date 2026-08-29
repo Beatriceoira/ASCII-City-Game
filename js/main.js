@@ -3,7 +3,7 @@
 // ============================================
 
 import {
-    spawnPoints
+    playerSpawn
 } from "./world.js";
 
 import {
@@ -29,7 +29,7 @@ import {
 
 
 // ============================================
-// CANVAS
+// DOM
 // ============================================
 
 const canvas =
@@ -38,20 +38,34 @@ const canvas =
     );
 
 
-// ============================================
-// ENGINE COMPONENTS
-// ============================================
-
-const player =
-    new Player(
-        spawnPoints.player.x,
-        spawnPoints.player.y,
-        spawnPoints.player.angle
+const minimapCanvas =
+    document.getElementById(
+        "minimapCanvas"
     );
 
 
+const status =
+    document.getElementById(
+        "status"
+    );
+
+
+// ============================================
+// ENGINE
+// ============================================
+
 const input =
-    new Input(canvas);
+    new Input(
+        canvas
+    );
+
+
+const player =
+    new Player(
+        playerSpawn.x,
+        playerSpawn.y,
+        playerSpawn.angle
+    );
 
 
 const raycaster =
@@ -59,7 +73,10 @@ const raycaster =
 
 
 const renderer =
-    new Renderer(canvas);
+    new Renderer(
+        canvas,
+        minimapCanvas
+    );
 
 
 const entities =
@@ -70,122 +87,30 @@ const entities =
 // GAME STATE
 // ============================================
 
-let lastTime = performance.now();
+let lastTime =
+    performance.now();
 
-let fps = 0;
 
 let fpsTimer = 0;
 
-let frameCount = 0;
+let frames = 0;
 
-
-// ============================================
-// HUD
-// ============================================
-
-const status =
-    document.getElementById(
-        "status"
-    );
+let fps = 0;
 
 
 // ============================================
 // UPDATE
 // ============================================
 
-function update(deltaTime) {
+function update(
+    deltaTime
+) {
 
-    let forward = 0;
-
-    let strafe = 0;
-
-
-    // -------------------------------
-    // Movement
-    // -------------------------------
-
-    if (
-        input.isDown("KeyW") ||
-        input.isDown("ArrowUp")
-    ) {
-
-        forward += 1;
-    }
-
-
-    if (
-        input.isDown("KeyS") ||
-        input.isDown("ArrowDown")
-    ) {
-
-        forward -= 1;
-    }
-
-
-    if (
-        input.isDown("KeyA")
-    ) {
-
-        strafe -= 1;
-    }
-
-
-    if (
-        input.isDown("KeyD")
-    ) {
-
-        strafe += 1;
-    }
-
-
-    player.move(
-        forward,
-        strafe,
+    player.update(
+        input,
         deltaTime
     );
 
-
-    // -------------------------------
-    // Keyboard rotation
-    // -------------------------------
-
-    if (
-        input.isDown("ArrowLeft")
-    ) {
-
-        player.rotate(
-            -1,
-            deltaTime
-        );
-    }
-
-
-    if (
-        input.isDown("ArrowRight")
-    ) {
-
-        player.rotate(
-            1,
-            deltaTime
-        );
-    }
-
-
-    // -------------------------------
-    // Mouse rotation
-    // -------------------------------
-
-    const mouseRotation =
-        input.consumeMouseDelta();
-
-
-    player.angle +=
-        mouseRotation;
-
-
-    // -------------------------------
-    // Entities
-    // -------------------------------
 
     updateEntities(
         entities,
@@ -202,50 +127,9 @@ function render() {
 
     renderer.render(
         player,
-        raycaster
+        raycaster,
+        entities
     );
-
-
-    // Render trees
-
-    for (
-        const tree
-        of entities.trees
-    ) {
-
-        renderer.drawEntity(
-            tree,
-            player
-        );
-    }
-
-
-    // Render cars
-
-    for (
-        const car
-        of entities.cars
-    ) {
-
-        renderer.drawEntity(
-            car,
-            player
-        );
-    }
-
-
-    // Render pedestrians
-
-    for (
-        const pedestrian
-        of entities.pedestrians
-    ) {
-
-        renderer.drawEntity(
-            pedestrian,
-            player
-        );
-    }
 }
 
 
@@ -253,11 +137,14 @@ function render() {
 // FPS
 // ============================================
 
-function updateFPS(deltaTime) {
+function updateHUD(
+    deltaTime
+) {
 
-    frameCount++;
+    frames++;
 
-    fpsTimer += deltaTime;
+    fpsTimer +=
+        deltaTime;
 
 
     if (
@@ -265,33 +152,38 @@ function updateFPS(deltaTime) {
     ) {
 
         fps =
-            frameCount /
+            frames /
             fpsTimer;
 
 
-        frameCount = 0;
+        frames = 0;
 
         fpsTimer = 0;
 
 
         status.textContent =
-            `FPS: ${fps.toFixed(0)} | ` +
-            `POS: ${player.x.toFixed(1)}, ` +
-            `${player.y.toFixed(1)}`;
+            `FPS ${fps.toFixed(0)} | ` +
+            `X ${player.x.toFixed(1)} | ` +
+            `Y ${player.y.toFixed(1)}`;
     }
 }
 
 
 // ============================================
-// MAIN LOOP
+// GAME LOOP
 // ============================================
 
-function gameLoop(timestamp) {
+function gameLoop(
+    timestamp
+) {
 
     const deltaTime =
         Math.min(
-            (timestamp - lastTime) /
-            1000,
+            (
+                timestamp -
+                lastTime
+            ) / 1000,
+
             0.1
         );
 
@@ -308,7 +200,7 @@ function gameLoop(timestamp) {
     render();
 
 
-    updateFPS(
+    updateHUD(
         deltaTime
     );
 
@@ -322,6 +214,15 @@ function gameLoop(timestamp) {
 // ============================================
 // START
 // ============================================
+
+console.log(
+    "ASCII City Version 2"
+);
+
+console.log(
+    "Engine initialized."
+);
+
 
 requestAnimationFrame(
     gameLoop

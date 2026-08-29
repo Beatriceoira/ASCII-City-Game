@@ -10,12 +10,11 @@ export class Input {
 
         this.keys = new Set();
 
-        this.mouseSensitivity = 0.003;
-
         this.mouseDelta = 0;
 
-        this.pointerLocked = false;
+        this.mouseSensitivity = 0.0025;
 
+        this.pointerLocked = false;
 
         this.setupKeyboard();
 
@@ -31,22 +30,50 @@ export class Input {
 
         window.addEventListener(
             "keydown",
-            event => {
+            (event) => {
 
-                this.keys.add(
-                    event.code
-                );
+                this.keys.add(event.code);
+
+                // Prevent browser scrolling
+                // when using movement keys.
+
+                if (
+                    [
+                        "KeyW",
+                        "KeyA",
+                        "KeyS",
+                        "KeyD",
+                        "ArrowUp",
+                        "ArrowDown",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "Space"
+                    ].includes(event.code)
+                ) {
+
+                    event.preventDefault();
+                }
             }
         );
 
 
         window.addEventListener(
             "keyup",
-            event => {
+            (event) => {
 
-                this.keys.delete(
-                    event.code
-                );
+                this.keys.delete(event.code);
+            }
+        );
+
+
+        // Important:
+        // Clear keys if the browser loses focus.
+
+        window.addEventListener(
+            "blur",
+            () => {
+
+                this.keys.clear();
             }
         );
     }
@@ -80,14 +107,11 @@ export class Input {
 
         document.addEventListener(
             "mousemove",
-            event => {
+            (event) => {
 
-                if (
-                    !this.pointerLocked
-                ) {
+                if (!this.pointerLocked) {
                     return;
                 }
-
 
                 this.mouseDelta +=
                     event.movementX *
@@ -108,7 +132,7 @@ export class Input {
 
 
     // ========================================
-    // GET MOUSE ROTATION
+    // MOUSE DELTA
     // ========================================
 
     consumeMouseDelta() {

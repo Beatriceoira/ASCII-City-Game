@@ -13,17 +13,13 @@ export class Raycaster {
 
     constructor() {
 
-        this.maxDepth = 30;
+        this.maxDepth = 32;
     }
 
 
-    // ========================================
-    // CAST RAY
-    // ========================================
-
     castRay(
-        startX,
-        startY,
+        originX,
+        originY,
         angle
     ) {
 
@@ -35,36 +31,48 @@ export class Raycaster {
 
 
         let mapX =
-            Math.floor(startX);
+            Math.floor(originX);
 
         let mapY =
-            Math.floor(startY);
+            Math.floor(originY);
 
 
         const deltaDistX =
-            Math.abs(
-                1 / rayDirX
-            );
+            rayDirX === 0
+                ? Infinity
+                : Math.abs(
+                    1 / rayDirX
+                );
+
 
         const deltaDistY =
-            Math.abs(
-                1 / rayDirY
-            );
+            rayDirY === 0
+                ? Infinity
+                : Math.abs(
+                    1 / rayDirY
+                );
 
 
         let stepX;
+
         let stepY;
 
         let sideDistX;
+
         let sideDistY;
 
 
-        if (rayDirX < 0) {
+        if (
+            rayDirX < 0
+        ) {
 
             stepX = -1;
 
             sideDistX =
-                (startX - mapX) *
+                (
+                    originX -
+                    mapX
+                ) *
                 deltaDistX;
 
         } else {
@@ -72,17 +80,25 @@ export class Raycaster {
             stepX = 1;
 
             sideDistX =
-                (mapX + 1 - startX) *
+                (
+                    mapX + 1 -
+                    originX
+                ) *
                 deltaDistX;
         }
 
 
-        if (rayDirY < 0) {
+        if (
+            rayDirY < 0
+        ) {
 
             stepY = -1;
 
             sideDistY =
-                (startY - mapY) *
+                (
+                    originY -
+                    mapY
+                ) *
                 deltaDistY;
 
         } else {
@@ -90,21 +106,21 @@ export class Raycaster {
             stepY = 1;
 
             sideDistY =
-                (mapY + 1 - startY) *
+                (
+                    mapY + 1 -
+                    originY
+                ) *
                 deltaDistY;
         }
 
 
-        let hit = false;
-
         let side = 0;
 
-        let distance = 0;
 
-
-        while (
-            !hit &&
-            distance < this.maxDepth
+        for (
+            let i = 0;
+            i < 128;
+            i++
         ) {
 
             if (
@@ -137,7 +153,10 @@ export class Raycaster {
                 mapY >= WORLD_HEIGHT
             ) {
 
-                break;
+                return {
+                    hit: false,
+                    distance: this.maxDepth
+                };
             }
 
 
@@ -145,49 +164,74 @@ export class Raycaster {
                 WORLD_MAP[mapY][mapX] === "#"
             ) {
 
-                hit = true;
+                let distance;
+
+
+                if (
+                    side === 0
+                ) {
+
+                    distance =
+                        (
+                            mapX -
+                            originX +
+                            (
+                                1 -
+                                stepX
+                            ) / 2
+                        ) /
+                        rayDirX;
+
+                } else {
+
+                    distance =
+                        (
+                            mapY -
+                            originY +
+                            (
+                                1 -
+                                stepY
+                            ) / 2
+                        ) /
+                        rayDirY;
+                }
+
+
+                distance =
+                    Math.abs(
+                        distance
+                    );
+
+
+                return {
+
+                    hit: true,
+
+                    distance,
+
+                    side,
+
+                    mapX,
+
+                    mapY,
+
+                    hitX:
+                        originX +
+                        rayDirX *
+                        distance,
+
+                    hitY:
+                        originY +
+                        rayDirY *
+                        distance
+                };
             }
         }
 
 
-        if (!hit) {
-
-            return {
-                hit: false,
-                distance: this.maxDepth
-            };
-        }
-
-
-        if (side === 0) {
-
-            distance =
-                sideDistX -
-                deltaDistX;
-
-        } else {
-
-            distance =
-                sideDistY -
-                deltaDistY;
-        }
-
-
         return {
-
-            hit: true,
-
-            distance:
-
-                Math.max(
-                    0.001,
-                    distance
-                ),
-
-            side,
-
-            mapX,
-            mapY
+            hit: false,
+            distance: this.maxDepth
         };
     }
 }

@@ -3,36 +3,55 @@
 // ============================================
 
 import {
+    buildings,
+    WORLD_MAP,
+    WORLD_WIDTH,
+    WORLD_HEIGHT
+} from "./world.js";
+
+import {
+    calculateBrightness,
     brightnessToASCII,
-    calculateWallBrightness
+    brightnessToColor,
+    clamp
 } from "./lighting.js";
 
 
 export class Renderer {
 
-    constructor(canvas) {
+    constructor(
+        canvas,
+        minimapCanvas
+    ) {
 
         this.canvas = canvas;
 
         this.ctx =
-            canvas.getContext("2d");
+            canvas.getContext(
+                "2d"
+            );
 
 
-        this.width = 0;
+        this.minimapCanvas =
+            minimapCanvas;
 
-        this.height = 0;
+        this.minimapCtx =
+            minimapCanvas.getContext(
+                "2d"
+            );
 
-        this.cellWidth = 9;
+
+        this.columns = 110;
+
+        this.rows = 55;
+
+        this.cellWidth = 8;
 
         this.cellHeight = 14;
 
 
-        this.columns = 100;
-
-        this.rows = 45;
-
-
         this.resize();
+
 
         window.addEventListener(
             "resize",
@@ -54,100 +73,308 @@ export class Renderer {
             window.innerHeight;
 
 
-        this.width =
-            this.canvas.width;
-
-        this.height =
-            this.canvas.height;
-
-
-        const estimatedColumns =
-            Math.floor(
-                this.width /
-                this.cellWidth
-            );
-
-
-        const estimatedRows =
-            Math.floor(
-                this.height /
-                this.cellHeight
-            );
-
-
-        this.columns =
-            Math.max(
-                60,
-                Math.min(
-                    160,
-                    estimatedColumns
-                )
-            );
-
-
-        this.rows =
-            Math.max(
-                30,
-                Math.min(
-                    70,
-                    estimatedRows
-                )
-            );
-
-
         this.cellWidth =
-            this.width /
+            this.canvas.width /
             this.columns;
 
+
         this.cellHeight =
-            this.height /
+            this.canvas.height /
             this.rows;
+
+
+        this.ctx.font =
+            `${Math.floor(
+                this.cellHeight
+            )}px monospace`;
+
+
+        this.ctx.textAlign =
+            "center";
+
+        this.ctx.textBaseline =
+            "middle";
     }
 
 
     // ========================================
-    // CLEAR
+    // FRAME BUFFER
     // ========================================
 
-    clear() {
+    createFrame() {
 
-        this.ctx.fillStyle =
-            "#050505";
+        const size =
+            this.columns *
+            this.rows;
 
-        this.ctx.fillRect(
-            0,
-            0,
-            this.width,
-            this.height
+
+        this.characters =
+            new Array(size);
+
+
+        this.colors =
+            new Array(size);
+
+
+        this.depthBuffer =
+            new Array(
+                this.columns
+            );
+
+
+        for (
+            let i = 0;
+            i < size;
+            i++
+        ) {
+
+            this.characters[i] = " ";
+
+            this.colors[i] =
+                "rgb(0,0,0)";
+        }
+
+
+        for (
+            let x = 0;
+            x < this.columns;
+            x++
+        ) {
+
+            this.depthBuffer[x] =
+                Infinity;
+        }
+    }
+
+
+    // ========================================
+    // FRAME INDEX
+    // ========================================
+
+    index(
+        x,
+        y
+    ) {
+
+        return (
+            y *
+            this.columns +
+            x
         );
     }
 
 
     // ========================================
-    // RENDER
+    // PUT CHARACTER
     // ========================================
 
-    render(
+    put(
+        x,
+        y,
+        character,
+        color,
+        depth
+    ) {
+
+        if (
+            x < 0 ||
+            x >= this.columns ||
+            y < 0 ||
+            y >= this.rows
+        ) {
+
+            return;
+        }
+
+
+        const index =
+            this.index(
+                x,
+                y
+            );
+
+
+        // Depth buffer.
+
+        if (
+            depth >
+            this.depthBuffer[x]
+        ) {
+
+            return;
+        }
+
+
+        this.characters[index] =
+            character;
+
+        this.colors[index] =
+            color;
+
+        this.depthBuffer[x] =
+            depth;
+    }
+
+
+    // ========================================
+    // DRAW SKY
+    // ========================================
+
+    drawSky() {
+
+        for (
+            let y = 0;
+            y < Math.floor(
+                this.rows / 2
+            );
+            y++
+        ) {
+
+            const normalized =
+                y /
+                (this.rows / 2);
+
+
+            const brightness =
+                0.03 +
+                (1 - normalized) *
+                0.04;
+
+
+            const value =
+                Math.floor(
+                    brightness * 255
+                );
+
+
+            const color =
+                `rgb(${value},${value},${value})`;
+
+
+            for (
+                let x = 0;
+                x < this.columns;
+                x++
+            ) {
+
+                this.put(
+                    x,
+                    y,
+                    " ",
+                    color,
+                    Infinity
+                );
+            }
+        }
+    }
+
+
+    // ========================================
+    // DRAW GROUND
+    // ========================================
+
+    drawGround() {
+
+        const horizon =
+            Math.floor(
+                this.rows / 2
+            );
+
+
+        for (
+            let y = horizon;
+            y < this.rows;
+            y++
+        ) {
+
+            const distanceFromHorizon =
+                (
+                    y -
+                    horizon
+                ) /
+                (
+                    this.rows -
+                    horizon
+                );
+
+
+            const brightness =
+                0.16 -
+                distanceFromHorizon *
+                0.11;
+
+
+            const value =
+                Math.floor(
+                    brightness * 255
+                );
+
+
+            const color =
+                `rgb(${value},${value},${value})`;
+
+
+            let character = ".";
+
+
+            if (
+                distanceFromHorizon >
+                0.35
+            ) {
+
+                character = ",";
+            }
+
+
+            if (
+                distanceFromHorizon >
+                0.7
+            ) {
+
+                character = ":";
+            }
+
+
+            for (
+                let x = 0;
+                x < this.columns;
+                x++
+            ) {
+
+                const index =
+                    this.index(
+                        x,
+                        y
+                    );
+
+
+                // Ground should not
+                // overwrite nearer objects.
+
+                if (
+                    this.characters[index] ===
+                    " "
+                ) {
+
+                    this.characters[index] =
+                        character;
+
+                    this.colors[index] =
+                        color;
+                }
+            }
+        }
+    }
+
+
+    // ========================================
+    // RENDER WALLS
+    // ========================================
+
+    renderWalls(
         player,
         raycaster
     ) {
-
-        this.clear();
-
-
-        const ctx =
-            this.ctx;
-
-
-        ctx.font =
-            `${Math.floor(
-                this.cellHeight
-            )}px monospace`;
-
-        ctx.textAlign = "center";
-
-        ctx.textBaseline = "middle";
-
 
         const FOV =
             Math.PI / 3;
@@ -160,8 +387,13 @@ export class Renderer {
         ) {
 
             const cameraX =
-                column /
-                this.columns;
+                (
+                    column /
+                    (
+                        this.columns -
+                        1
+                    )
+                );
 
 
             const rayAngle =
@@ -178,62 +410,66 @@ export class Renderer {
                 );
 
 
-            if (!ray.hit) {
+            if (
+                !ray.hit
+            ) {
+
                 continue;
             }
 
 
-            const distance =
-                ray.distance;
-
-
-            // Prevent fish-eye distortion.
-
             const correctedDistance =
-                distance *
+                ray.distance *
                 Math.cos(
                     rayAngle -
                     player.angle
                 );
 
 
-            const wallHeight =
-                1 /
-                Math.max(
-                    correctedDistance,
-                    0.001
+            const building =
+                this.getBuildingAt(
+                    ray.mapX,
+                    ray.mapY
                 );
 
 
+            const height =
+                building
+                    ? building.height
+                    : 5;
+
+
             const projectedHeight =
-                wallHeight *
+                (
+                    height /
+                    correctedDistance
+                ) *
                 this.rows *
-                0.9;
+                0.85;
 
 
-            const centerY =
+            const center =
                 this.rows / 2;
 
 
             const top =
                 Math.floor(
-                    centerY -
-                    projectedHeight / 2
+                    center -
+                    projectedHeight
                 );
 
 
             const bottom =
                 Math.floor(
-                    centerY +
-                    projectedHeight / 2
+                    center
                 );
 
 
             const brightness =
-                calculateWallBrightness(
+                calculateBrightness(
                     correctedDistance,
-                    ray.side,
-                    raycaster.maxDepth
+                    raycaster.maxDepth,
+                    ray.side
                 );
 
 
@@ -243,7 +479,11 @@ export class Renderer {
                 );
 
 
-            // Draw wall vertically.
+            const color =
+                brightnessToColor(
+                    brightness
+                );
+
 
             for (
                 let row = top;
@@ -255,157 +495,101 @@ export class Renderer {
                     row < 0 ||
                     row >= this.rows
                 ) {
+
                     continue;
                 }
 
 
-                const x =
-                    column *
-                    this.cellWidth +
-                    this.cellWidth / 2;
-
-
-                const y =
-                    row *
-                    this.cellHeight +
-                    this.cellHeight / 2;
-
-
-                // Slightly warm grayscale.
-
-                const value =
-                    Math.floor(
-                        30 +
-                        brightness * 225
-                    );
-
-
-                ctx.fillStyle =
-                    `rgb(${value},${value},${value})`;
-
-
-                ctx.fillText(
+                this.put(
+                    column,
+                    row,
                     character,
-                    x,
-                    y
+                    color,
+                    correctedDistance
                 );
             }
         }
-
-
-        this.renderGround();
     }
 
 
     // ========================================
-    // GROUND
+    // FIND BUILDING
     // ========================================
 
-    renderGround() {
+    getBuildingAt(
+        mapX,
+        mapY
+    ) {
 
-        const ctx =
-            this.ctx;
+        for (
+            const building
+            of buildings
+        ) {
+
+            if (
+                mapX >= building.x &&
+                mapX < building.x +
+                    building.width &&
+                mapY >= building.y &&
+                mapY < building.y +
+                    building.depth
+            ) {
+
+                return building;
+            }
+        }
 
 
-        ctx.font =
-            `${Math.floor(
-                this.cellHeight
-            )}px monospace`;
+        return null;
+    }
 
 
-        ctx.textAlign = "center";
+    // ========================================
+    // RENDER ENTITIES
+    // ========================================
 
-        ctx.textBaseline = "middle";
+    renderEntities(
+        entities,
+        player
+    ) {
+
+        const allEntities = [
+
+            ...entities.trees,
+
+            ...entities.cars,
+
+            ...entities.pedestrians
+        ];
 
 
-        const horizon =
-            this.height / 2;
+        // Far → near.
+
+        allEntities.sort(
+            (a, b) =>
+                b.distanceTo(player) -
+                a.distanceTo(player)
+        );
 
 
         for (
-            let row = Math.floor(
-                this.rows / 2
-            );
-            row < this.rows;
-            row++
+            const entity
+            of allEntities
         ) {
 
-            const normalized =
-                (row -
-                this.rows / 2) /
-                (this.rows / 2);
-
-
-            let character = ".";
-
-
-            if (
-                normalized > 0.5
-            ) {
-
-                character = ",";
-            }
-
-
-            if (
-                normalized > 0.8
-            ) {
-
-                character = ":";
-            }
-
-
-            const brightness =
-                Math.max(
-                    0.05,
-                    0.2 -
-                    normalized * 0.12
-                );
-
-
-            const value =
-                Math.floor(
-                    brightness * 255
-                );
-
-
-            ctx.fillStyle =
-                `rgb(${value},${value},${value})`;
-
-
-            for (
-                let column = 0;
-                column < this.columns;
-                column++
-            ) {
-
-                const x =
-                    column *
-                    this.cellWidth +
-                    this.cellWidth / 2;
-
-
-                const y =
-                    row *
-                    this.cellHeight +
-                    this.cellHeight / 2;
-
-
-                ctx.fillText(
-                    character,
-                    x,
-                    y
-                );
-            }
+            this.renderEntity(
+                entity,
+                player
+            );
         }
     }
 
 
     // ========================================
-    // DRAW ENTITY
+    // ENTITY PROJECTION
     // ========================================
 
-    drawEntity(
+    renderEntity(
         entity,
         player
     ) {
@@ -413,6 +597,7 @@ export class Renderer {
         const dx =
             entity.x -
             player.x;
+
 
         const dy =
             entity.y -
@@ -427,14 +612,15 @@ export class Renderer {
 
 
         if (
-            distance <= 0.1 ||
-            distance > 25
+            distance < 0.1 ||
+            distance > 28
         ) {
+
             return;
         }
 
 
-        let angle =
+        let relativeAngle =
             Math.atan2(
                 dy,
                 dx
@@ -442,20 +628,22 @@ export class Renderer {
             player.angle;
 
 
-        // Normalize angle.
-
         while (
-            angle > Math.PI
+            relativeAngle >
+            Math.PI
         ) {
-            angle -=
+
+            relativeAngle -=
                 Math.PI * 2;
         }
 
 
         while (
-            angle < -Math.PI
+            relativeAngle <
+            -Math.PI
         ) {
-            angle +=
+
+            relativeAngle +=
                 Math.PI * 2;
         }
 
@@ -465,77 +653,475 @@ export class Renderer {
 
 
         if (
-            Math.abs(angle) >
-            FOV / 2
+            Math.abs(
+                relativeAngle
+            ) >
+            FOV / 2 +
+            0.15
         ) {
+
             return;
         }
 
 
         const screenX =
             (
-                angle /
-                (FOV / 2)
+                relativeAngle /
+                FOV +
+                0.5
             ) *
-            (this.width / 2) +
-            this.width / 2;
+            this.columns;
 
 
-        const brightness =
-            Math.max(
-                0.1,
-                1 -
-                distance / 25
+        const correctedDistance =
+            distance *
+            Math.cos(
+                relativeAngle
             );
 
 
-        const value =
-            Math.floor(
-                brightness * 255
-            );
+        if (
+            correctedDistance <= 0
+        ) {
 
-
-        let character;
-
-
-        switch (entity.type) {
-
-            case "tree":
-                character = "♣";
-                break;
-
-            case "car":
-                character = "▣";
-                break;
-
-            case "pedestrian":
-                character = "♟";
-                break;
-
-            default:
-                character = "?";
+            return;
         }
 
 
-        const size =
+        const projectedHeight =
+            (
+                entity.height /
+                correctedDistance
+            ) *
+            this.rows *
+            0.65;
+
+
+        const projectedWidth =
             Math.max(
-                10,
-                40 / distance
+                1,
+                (
+                    entity.width /
+                    correctedDistance
+                ) *
+                this.columns *
+                0.45
             );
 
 
-        this.ctx.font =
-            `${size}px monospace`;
+        const centerY =
+            this.rows / 2;
 
 
-        this.ctx.fillStyle =
-            `rgb(${value},${value},${value})`;
+        const top =
+            Math.floor(
+                centerY -
+                projectedHeight / 2
+            );
 
 
-        this.ctx.fillText(
-            character,
-            screenX,
-            this.height / 2
+        const bottom =
+            Math.floor(
+                centerY +
+                projectedHeight / 2
+            );
+
+
+        const left =
+            Math.floor(
+                screenX -
+                projectedWidth / 2
+            );
+
+
+        const right =
+            Math.ceil(
+                screenX +
+                projectedWidth / 2
+            );
+
+
+        const brightness =
+            calculateBrightness(
+                correctedDistance,
+                28
+            );
+
+
+        const color =
+            brightnessToColor(
+                brightness
+            );
+
+
+        const sprite =
+            this.getSprite(
+                entity.type
+            );
+
+
+        const spriteHeight =
+            sprite.length;
+
+
+        const spriteWidth =
+            Math.max(
+                ...sprite.map(
+                    line =>
+                        line.length
+                )
+            );
+
+
+        for (
+            let sy = 0;
+            sy < spriteHeight;
+            sy++
+        ) {
+
+            for (
+                let sx = 0;
+                sx < sprite[sy].length;
+                sx++
+            ) {
+
+                const char =
+                    sprite[sy][sx];
+
+
+                if (
+                    char === " "
+                ) {
+
+                    continue;
+                }
+
+
+                const screenCellX =
+                    left +
+                    Math.floor(
+                        (
+                            sx /
+                            spriteWidth
+                        ) *
+                        (
+                            right -
+                            left +
+                            1
+                        )
+                    );
+
+
+                const screenCellY =
+                    top +
+                    Math.floor(
+                        (
+                            sy /
+                            spriteHeight
+                        ) *
+                        (
+                            bottom -
+                            top +
+                            1
+                        )
+                    );
+
+
+                this.put(
+                    screenCellX,
+                    screenCellY,
+                    char,
+                    color,
+                    correctedDistance
+                );
+            }
+        }
+    }
+
+
+    // ========================================
+    // SPRITES
+    // ========================================
+
+    getSprite(type) {
+
+        switch (type) {
+
+            case "tree":
+
+                return [
+
+                    "  /\\  ",
+                    " /@@\\ ",
+                    "/@@@@\\",
+                    " /@@\\ ",
+                    "  ||  ",
+                    "  ||  "
+                ];
+
+
+            case "car":
+
+                return [
+
+                    "  ____  ",
+                    " /____\\ ",
+                    "|[][][]|",
+                    " O    O "
+                ];
+
+
+            case "pedestrian":
+
+                return [
+
+                    " O ",
+                    "/|\\",
+                    "/ \\"
+                ];
+
+
+            default:
+
+                return ["?"];
+        }
+    }
+
+
+    // ========================================
+    // FLUSH FRAME
+    // ========================================
+
+    flush() {
+
+        this.ctx.clearRect(
+            0,
+            0,
+            this.canvas.width,
+            this.canvas.height
         );
+
+
+        for (
+            let y = 0;
+            y < this.rows;
+            y++
+        ) {
+
+            for (
+                let x = 0;
+                x < this.columns;
+                x++
+            ) {
+
+                const index =
+                    this.index(
+                        x,
+                        y
+                    );
+
+
+                const character =
+                    this.characters[index];
+
+
+                if (
+                    character === " "
+                ) {
+
+                    continue;
+                }
+
+
+                this.ctx.fillStyle =
+                    this.colors[index];
+
+
+                this.ctx.fillText(
+                    character,
+                    x *
+                        this.cellWidth +
+                        this.cellWidth / 2,
+
+                    y *
+                        this.cellHeight +
+                        this.cellHeight / 2
+                );
+            }
+        }
+    }
+
+
+    // ========================================
+    // MAIN RENDER
+    // ========================================
+
+    render(
+        player,
+        raycaster,
+        entities
+    ) {
+
+        this.createFrame();
+
+        this.drawSky();
+
+        this.drawGround();
+
+        this.renderWalls(
+            player,
+            raycaster
+        );
+
+        this.renderEntities(
+            entities,
+            player
+        );
+
+        this.flush();
+
+        this.renderMinimap(
+            player
+        );
+    }
+
+
+    // ========================================
+    // MINIMAP
+    // ========================================
+
+    renderMinimap(
+        player
+    ) {
+
+        const canvas =
+            this.minimapCanvas;
+
+        const ctx =
+            this.minimapCtx;
+
+
+        canvas.width =
+            canvas.clientWidth;
+
+        canvas.height =
+            canvas.clientHeight;
+
+
+        ctx.clearRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+
+        const scaleX =
+            canvas.width /
+            WORLD_WIDTH;
+
+
+        const scaleY =
+            canvas.height /
+            WORLD_HEIGHT;
+
+
+        for (
+            let y = 0;
+            y < WORLD_HEIGHT;
+            y++
+        ) {
+
+            for (
+                let x = 0;
+                x < WORLD_WIDTH;
+                x++
+            ) {
+
+                const tile =
+                    WORLD_MAP[y][x];
+
+
+                if (
+                    tile === "#"
+                ) {
+
+                    ctx.fillStyle =
+                        "#777";
+
+                } else {
+
+                    ctx.fillStyle =
+                        "#111";
+                }
+
+
+                ctx.fillRect(
+                    x * scaleX,
+                    y * scaleY,
+                    scaleX + 1,
+                    scaleY + 1
+                );
+            }
+        }
+
+
+        // Player
+
+        const px =
+            player.x *
+            scaleX;
+
+
+        const py =
+            player.y *
+            scaleY;
+
+
+        ctx.fillStyle =
+            "#fff";
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+            px,
+            py,
+            3,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // Direction
+
+        ctx.strokeStyle =
+            "#fff";
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            px,
+            py
+        );
+
+
+        ctx.lineTo(
+            px +
+            Math.cos(
+                player.angle
+            ) * 12,
+
+            py +
+            Math.sin(
+                player.angle
+            ) * 12
+        );
+
+
+        ctx.stroke();
     }
 }

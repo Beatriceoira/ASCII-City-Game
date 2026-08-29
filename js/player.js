@@ -2,50 +2,216 @@
 // PLAYER.JS
 // ============================================
 
-import { isWall } from "./world.js";
+import {
+    isWall
+} from "./world.js";
+
 
 export class Player {
 
-    constructor(x, y, angle = 0) {
+    constructor(
+        x,
+        y,
+        angle
+    ) {
 
         this.x = x;
+
         this.y = y;
 
         this.angle = angle;
 
-        this.moveSpeed = 4.0;
+        // Movement speed in world units/second.
+        this.moveSpeed = 4;
+
+        // Rotation speed.
         this.rotationSpeed = 2.5;
 
-        this.radius = 0.2;
+        // Collision radius.
+        this.radius = 0.20;
+    }
+
+
+    update(
+        input,
+        deltaTime
+    ) {
+
+        let forward = 0;
+
+        let strafe = 0;
+
+
+        // ====================================
+        // FORWARD / BACKWARD
+        // ====================================
+
+        if (
+            input.isDown("KeyW") ||
+            input.isDown("ArrowUp")
+        ) {
+
+            forward += 1;
+        }
+
+
+        if (
+            input.isDown("KeyS") ||
+            input.isDown("ArrowDown")
+        ) {
+
+            forward -= 1;
+        }
+
+
+        // ====================================
+        // STRAFE
+        // ====================================
+
+        if (
+            input.isDown("KeyA")
+        ) {
+
+            strafe -= 1;
+        }
+
+
+        if (
+            input.isDown("KeyD")
+        ) {
+
+            strafe += 1;
+        }
+
+
+        // ====================================
+        // MOVE
+        // ====================================
+
+        this.move(
+            forward,
+            strafe,
+            deltaTime
+        );
+
+
+        // ====================================
+        // KEYBOARD ROTATION
+        // ====================================
+
+        if (
+            input.isDown("ArrowLeft")
+        ) {
+
+            this.rotate(
+                -1,
+                deltaTime
+            );
+        }
+
+
+        if (
+            input.isDown("ArrowRight")
+        ) {
+
+            this.rotate(
+                1,
+                deltaTime
+            );
+        }
+
+
+        // ====================================
+        // MOUSE ROTATION
+        // ====================================
+
+        const mouseDelta =
+            input.consumeMouseDelta();
+
+
+        this.angle +=
+            mouseDelta;
+
+
+        this.normalizeAngle();
     }
 
 
     // ========================================
-    // MOVE
+    // MOVEMENT
     // ========================================
 
-    move(forward, strafe, deltaTime) {
+    move(
+        forward,
+        strafe,
+        deltaTime
+    ) {
 
-        const speed =
+        if (
+            forward === 0 &&
+            strafe === 0
+        ) {
+
+            return;
+        }
+
+
+        // Normalize diagonal movement.
+
+        const magnitude =
+            Math.sqrt(
+                forward * forward +
+                strafe * strafe
+            );
+
+
+        if (
+            magnitude > 1
+        ) {
+
+            forward /= magnitude;
+
+            strafe /= magnitude;
+        }
+
+
+        const distance =
             this.moveSpeed *
             deltaTime;
 
-        const cos =
+
+        // Direction vectors.
+
+        const forwardX =
             Math.cos(this.angle);
 
-        const sin =
+        const forwardY =
             Math.sin(this.angle);
 
 
+        const rightX =
+            -Math.sin(this.angle);
+
+        const rightY =
+            Math.cos(this.angle);
+
+
+        // Calculate movement.
+
         const dx =
-            (cos * forward -
-            sin * strafe) *
-            speed;
+            (
+                forwardX * forward +
+                rightX * strafe
+            ) *
+            distance;
+
 
         const dy =
-            (sin * forward +
-            cos * strafe) *
-            speed;
+            (
+                forwardY * forward +
+                rightY * strafe
+            ) *
+            distance;
 
 
         this.tryMove(
@@ -56,27 +222,27 @@ export class Player {
 
 
     // ========================================
-    // COLLISION
+    // COLLISION-AWARE MOVEMENT
     // ========================================
 
-    tryMove(dx, dy) {
+    tryMove(
+        dx,
+        dy
+    ) {
 
         const newX =
             this.x + dx;
+
 
         const newY =
             this.y + dy;
 
 
-        // X collision
+        // X axis
 
         if (
-            !isWall(
-                newX + this.radius,
-                this.y
-            ) &&
-            !isWall(
-                newX - this.radius,
+            !this.collides(
+                newX,
                 this.y
             )
         ) {
@@ -85,16 +251,12 @@ export class Player {
         }
 
 
-        // Y collision
+        // Y axis
 
         if (
-            !isWall(
+            !this.collides(
                 this.x,
-                newY + this.radius
-            ) &&
-            !isWall(
-                this.x,
-                newY - this.radius
+                newY
             )
         ) {
 
@@ -104,25 +266,80 @@ export class Player {
 
 
     // ========================================
-    // ROTATE
+    // COLLISION
     // ========================================
 
-    rotate(amount, deltaTime) {
+    collides(
+        x,
+        y
+    ) {
+
+        const r =
+            this.radius;
+
+
+        return (
+            isWall(
+                x + r,
+                y
+            ) ||
+
+            isWall(
+                x - r,
+                y
+            ) ||
+
+            isWall(
+                x,
+                y + r
+            ) ||
+
+            isWall(
+                x,
+                y - r
+            )
+        );
+    }
+
+
+    // ========================================
+    // ROTATION
+    // ========================================
+
+    rotate(
+        direction,
+        deltaTime
+    ) {
 
         this.angle +=
-            amount *
+            direction *
             this.rotationSpeed *
             deltaTime;
 
 
-        // Keep angle within 0 → 2π
+        this.normalizeAngle();
+    }
 
-        this.angle %= Math.PI * 2;
 
-        if (this.angle < 0) {
+    // ========================================
+    // NORMALIZE ANGLE
+    // ========================================
 
-            this.angle +=
-                Math.PI * 2;
+    normalizeAngle() {
+
+        const twoPi =
+            Math.PI * 2;
+
+
+        this.angle =
+            this.angle % twoPi;
+
+
+        if (
+            this.angle < 0
+        ) {
+
+            this.angle += twoPi;
         }
     }
 }

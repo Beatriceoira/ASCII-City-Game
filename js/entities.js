@@ -4,23 +4,75 @@
 
 import {
     isWall,
-    spawnPoints
+    treeSpawns,
+    carSpawns,
+    pedestrianSpawns
 } from "./world.js";
 
 
 // ============================================
-// TREES
+// BASE ENTITY
 // ============================================
 
-export class Tree {
+class Entity {
 
-    constructor(x, y) {
+    constructor(
+        x,
+        y
+    ) {
 
         this.x = x;
 
         this.y = y;
 
+        this.height = 1;
+
+        this.width = 0.5;
+
+        this.type = "entity";
+
+        this.character = "?";
+    }
+
+
+    distanceTo(player) {
+
+        const dx =
+            this.x -
+            player.x;
+
+        const dy =
+            this.y -
+            player.y;
+
+
+        return Math.sqrt(
+            dx * dx +
+            dy * dy
+        );
+    }
+}
+
+
+// ============================================
+// TREE
+// ============================================
+
+export class Tree
+    extends Entity {
+
+    constructor(
+        x,
+        y
+    ) {
+
+        super(x, y);
+
         this.type = "tree";
+
+        this.height = 2.8;
+
+        this.width = 0.7;
     }
 }
 
@@ -29,7 +81,8 @@ export class Tree {
 // CAR
 // ============================================
 
-export class Car {
+export class Car
+    extends Entity {
 
     constructor(
         x,
@@ -38,15 +91,17 @@ export class Car {
         speed
     ) {
 
-        this.x = x;
+        super(x, y);
 
-        this.y = y;
+        this.type = "car";
 
         this.angle = angle;
 
         this.speed = speed;
 
-        this.type = "car";
+        this.height = 0.65;
+
+        this.width = 1.0;
     }
 
 
@@ -57,6 +112,7 @@ export class Car {
             this.speed *
             deltaTime;
 
+
         const dy =
             Math.sin(this.angle) *
             this.speed *
@@ -66,12 +122,16 @@ export class Car {
         const nextX =
             this.x + dx;
 
+
         const nextY =
             this.y + dy;
 
 
         if (
-            !isWall(nextX, nextY)
+            !isWall(
+                nextX,
+                nextY
+            )
         ) {
 
             this.x = nextX;
@@ -80,9 +140,8 @@ export class Car {
 
         } else {
 
-            // Turn around
-
-            this.angle += Math.PI;
+            this.angle +=
+                Math.PI;
         }
     }
 }
@@ -92,7 +151,8 @@ export class Car {
 // PEDESTRIAN
 // ============================================
 
-export class Pedestrian {
+export class Pedestrian
+    extends Entity {
 
     constructor(
         x,
@@ -101,37 +161,47 @@ export class Pedestrian {
         speed
     ) {
 
-        this.x = x;
+        super(x, y);
 
-        this.y = y;
+        this.type =
+            "pedestrian";
 
-        this.angle = angle;
+        this.angle =
+            angle;
 
-        this.speed = speed;
+        this.speed =
+            speed;
 
-        this.type = "pedestrian";
+        this.height =
+            1.7;
 
-        this.changeDirectionTimer =
+        this.width =
+            0.25;
+
+        this.timer =
             Math.random() * 3;
     }
 
 
     update(deltaTime) {
 
-        this.changeDirectionTimer -=
+        this.timer -=
             deltaTime;
 
 
         if (
-            this.changeDirectionTimer <= 0
+            this.timer <= 0
         ) {
 
             this.angle +=
-                (Math.random() - 0.5) *
+                (
+                    Math.random() -
+                    0.5
+                ) *
                 Math.PI;
 
 
-            this.changeDirectionTimer =
+            this.timer =
                 2 +
                 Math.random() * 4;
         }
@@ -142,6 +212,7 @@ export class Pedestrian {
             this.speed *
             deltaTime;
 
+
         const dy =
             Math.sin(this.angle) *
             this.speed *
@@ -151,12 +222,16 @@ export class Pedestrian {
         const nextX =
             this.x + dx;
 
+
         const nextY =
             this.y + dy;
 
 
         if (
-            !isWall(nextX, nextY)
+            !isWall(
+                nextX,
+                nextY
+            )
         ) {
 
             this.x = nextX;
@@ -179,7 +254,7 @@ export class Pedestrian {
 export function createEntities() {
 
     const trees =
-        spawnPoints.trees.map(
+        treeSpawns.map(
             point =>
                 new Tree(
                     point.x,
@@ -189,7 +264,7 @@ export function createEntities() {
 
 
     const cars =
-        spawnPoints.cars.map(
+        carSpawns.map(
             point =>
                 new Car(
                     point.x,
@@ -201,7 +276,7 @@ export function createEntities() {
 
 
     const pedestrians =
-        spawnPoints.pedestrians.map(
+        pedestrianSpawns.map(
             point =>
                 new Pedestrian(
                     point.x,
@@ -221,7 +296,7 @@ export function createEntities() {
 
 
 // ============================================
-// UPDATE ENTITIES
+// UPDATE
 // ============================================
 
 export function updateEntities(
@@ -229,9 +304,14 @@ export function updateEntities(
     deltaTime
 ) {
 
-    for (const car of entities.cars) {
+    for (
+        const car
+        of entities.cars
+    ) {
 
-        car.update(deltaTime);
+        car.update(
+            deltaTime
+        );
     }
 
 
@@ -240,6 +320,8 @@ export function updateEntities(
         of entities.pedestrians
     ) {
 
-        pedestrian.update(deltaTime);
+        pedestrian.update(
+            deltaTime
+        );
     }
 }
